@@ -1,6 +1,7 @@
 // NextJs
 import { unstable_noStore as noStore } from "next/cache";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 // Ours
 import { api } from "@/trpc/server";
@@ -26,7 +27,7 @@ export default async function Home() {
         <ul className={styles.stories__list}>
           {stories.map((story) => (
             <li key={story.id}>
-              <a href={`/story/${story.id}`}>{story.title}</a>
+              <Link href={`/story/${story.id}`}>{story.title}</Link>
             </li>
           ))}
         </ul>

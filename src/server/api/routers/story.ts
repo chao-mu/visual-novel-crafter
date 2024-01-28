@@ -14,6 +14,14 @@ export const storyRouter = createTRPCRouter({
       });
     }),
 
+  getStoryById: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(({ ctx, input }) => {
+      return ctx.db.story.findUnique({
+        where: { id: input.id, createdById: ctx.session.user.id },
+        include: { createdBy: true },
+      });
+    }),
   getVisible: protectedProcedure.query(({ ctx }) => {
     return ctx.db.story.findMany({});
   }),
