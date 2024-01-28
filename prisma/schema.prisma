@@ -20,11 +20,27 @@ model Story {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdBy   User       @relation(fields: [createdById], references: [id])
   createdById String
+  timelines   Timeline[]
 
   @@index([title])
   @@index([createdById])
+}
+
+model Timeline {
+  id        Int      @id @default(autoincrement())
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdById String
+  story       Story  @relation(fields: [storyId], references: [id])
+  storyId     Int
+
+  @@index([createdById])
+  @@index([storyId])
 }
 
 // Necessary for Next auth
@@ -58,14 +74,15 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?    @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   sessions      Session[]
   stories       Story[]
+  timeline      Timeline[]
 }
 
 model VerificationToken {

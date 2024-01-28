@@ -25,6 +25,14 @@ export default async function StoryPage({
   return (
     <main className={styles.main}>
       <h1>{story.title}</h1>
+      <section className={styles.timelines}>
+        <h2>Timelines</h2>
+        <ul>
+          {story.timelines.map((timeline) => (
+            <li key={timeline.id}>{JSON.stringify(timeline, null, 2)}</li>
+          ))}
+        </ul>
+      </section>
     </main>
   );
 }
