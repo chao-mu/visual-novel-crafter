@@ -5,7 +5,7 @@ import Link from "next/link";
 
 // Ours
 import { api } from "@/trpc/server";
-import styles from "./index.module.css";
+import styles from "./page.module.css";
 import { getServerAuthSession } from "@/server/auth";
 import { CreateStory } from "./_components/create-story";
 

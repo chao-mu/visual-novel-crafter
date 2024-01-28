@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 // Ours
 import { api } from "@/trpc/server";
-import styles from "./index.module.css";
+import styles from "./page.module.css";
 
 type StoryPageProps = {
   params: {
