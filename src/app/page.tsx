@@ -20,8 +20,6 @@ export default async function Home() {
 
   return (
     <main className={styles.main}>
-      <h1 className={styles.title}>Visual Novel Crafter</h1>
-      <p>Welcome {session?.user?.name}</p>
       <section className={styles.stories}>
         <h2>Stories</h2>
         <ul className={styles.stories__list}>
