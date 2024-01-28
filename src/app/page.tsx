@@ -19,7 +19,7 @@ export default async function Home() {
   }
 
   return (
-    <main className={styles.main}>
+    <>
       <section className={styles.stories}>
         <h2>Stories</h2>
         <ul className={styles.stories__list}>
@@ -31,6 +31,6 @@ export default async function Home() {
         </ul>
         <CreateStory />
       </section>
-    </main>
+    </>
   );
 }

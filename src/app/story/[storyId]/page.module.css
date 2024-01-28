@@ -1,7 +1,8 @@
-.main {
+.timelines,
+.characters {
   display: flex;
   flex-direction: column;
-  align-self: center;
-  max-width: 800px;
-  width: 100%;
+  row-gap: 0.75rem;
+  border: 1px solid #000;
+  padding: 0.5rem;
 }

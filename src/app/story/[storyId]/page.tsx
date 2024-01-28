@@ -25,7 +25,7 @@ export default async function StoryPage({
   }
 
   return (
-    <main className={styles.main}>
+    <>
       <h1>{story.title}</h1>
       <section className={styles.timelines}>
         <h2>Timelines</h2>
@@ -35,7 +35,7 @@ export default async function StoryPage({
           ))}
         </ul>
       </section>
-      <section className={styles.stories}>
+      <section className={styles.characters}>
         <h2>Characters</h2>
         <ul className={styles.characters__list}>
           {story.characters.map((character) => (
@@ -46,6 +46,6 @@ export default async function StoryPage({
         </ul>
         <CreateCharacter storyId={story.id} />
       </section>
-    </main>
+    </>
   );
 }

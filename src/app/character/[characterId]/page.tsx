@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 // Ours
 import { api } from "@/trpc/server";
-import styles from "./page.module.css";
 
 type CharacterPageProps = {
   params: {
@@ -23,8 +22,8 @@ export default async function CharacterPage({
   }
 
   return (
-    <main className={styles.main}>
+    <>
       <h1>{character.name}</h1>
-    </main>
+    </>
   );
 }

@@ -22,3 +22,12 @@ a.login-button {
   text-decoration: none;
   color: inherit;
 }
+
+.main {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  max-width: 800px;
+  width: 100%;
+  row-gap: 1rem;
+}

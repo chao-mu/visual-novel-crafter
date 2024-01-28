@@ -1,7 +1,5 @@
-.main {
+.stories {
   display: flex;
   flex-direction: column;
-  align-self: center;
-  max-width: 800px;
-  width: 100%;
+  row-gap: 0.75rem;
 }

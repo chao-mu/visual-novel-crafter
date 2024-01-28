@@ -41,7 +41,9 @@ export default async function RootLayout({
             {session ? "Sign out" : "Sign in"}
           </Link>
         </header>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <main className={styles.main}>
+          <TRPCReactProvider>{children}</TRPCReactProvider>
+        </main>
       </body>
     </html>
   );
