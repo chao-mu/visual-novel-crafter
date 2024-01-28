@@ -1,49 +1,48 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+// react-hook-form
+import { useForm } from "react-hook-form";
 
+// NextJs
+import { useRouter } from "next/navigation";
+
+// Ours
 import { api } from "@/trpc/react";
-import styles from "./create-story.module.css";
+import formStyles from "@/styles/form.module.css";
+import { SubmitButton } from "@/app/_components/submit-button";
+
+type Form = {
+  title: string;
+};
 
 export function CreateStory() {
   const router = useRouter();
-  const [title, setTitle] = useState("");
+  const { register, reset, handleSubmit } = useForm<Form>();
 
   const createStory = api.story.create.useMutation({
     onSuccess: () => {
+      reset();
       router.refresh();
-      setTitle("");
     },
   });
 
+  const onSubmit = handleSubmit(({ title }, e) => {
+    e?.preventDefault();
+    createStory.mutate({ title });
+  });
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        createStory.mutate({ title });
-      }}
-      className={styles.form}
-    >
+    <form onSubmit={onSubmit} className={formStyles["inline-form"]}>
       <input
         id="title"
-        name="title"
         type="text"
         placeholder="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className={styles.input}
+        {...register("title")}
       />
-      <button
-        type="submit"
-        className={styles.submitButton}
-        disabled={createStory.isLoading}
-      >
-        {createStory.isLoading ? "Submitting..." : "Submit"}
-      </button>
-      <label htmlFor="title" className={styles.error}>
+      <SubmitButton isLoading={createStory.isLoading} />
+      <p className={formStyles["submission-error"]}>
         {createStory.error?.message}
-      </label>
+      </p>
     </form>
   );
 }

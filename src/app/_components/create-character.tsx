@@ -1,53 +1,47 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+// react-hook-form
+import { useForm } from "react-hook-form";
 
+// NextJs
+import { useRouter } from "next/navigation";
+
+// Ours
 import { api } from "@/trpc/react";
-import styles from "./create-character.module.css";
+import formStyles from "@/styles/form.module.css";
+import { SubmitButton } from "@/app/_components/submit-button";
 
 type CreateCharacterProps = {
   storyId: number;
 };
 
+type Form = {
+  name: string;
+};
+
 export function CreateCharacter({ storyId }: CreateCharacterProps) {
   const router = useRouter();
-  const [name, setName] = useState("");
+  const { register, reset, handleSubmit } = useForm<Form>();
 
   const createCharacter = api.character.create.useMutation({
     onSuccess: () => {
+      reset();
       router.refresh();
-      setName("");
     },
   });
 
+  const onSubmit = handleSubmit(({ name }, e) => {
+    e?.preventDefault();
+    createCharacter.mutate({ name, storyId });
+  });
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        createCharacter.mutate({ name, storyId });
-      }}
-      className={styles.form}
-    >
-      <input
-        id="name"
-        name="name"
-        type="text"
-        placeholder="Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className={styles.input}
-      />
-      <button
-        type="submit"
-        className={styles.submitButton}
-        disabled={createCharacter.isLoading}
-      >
-        {createCharacter.isLoading ? "Submitting..." : "Submit"}
-      </button>
-      <label htmlFor="name" className={styles.error}>
+    <form onSubmit={onSubmit} className={formStyles["inline-form"]}>
+      <input id="name" type="text" placeholder="Name" {...register("name")} />
+      <SubmitButton isLoading={createCharacter.isLoading} />
+      <p className={formStyles["submission-error"]}>
         {createCharacter.error?.message}
-      </label>
+      </p>
     </form>
   );
 }

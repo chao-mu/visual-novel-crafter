@@ -1,0 +1,13 @@
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.submission-error,
+.error {
+  color: red;
+}
+
+.inline-form > .submission-error {
+  flex-basis: 100%;
+}
