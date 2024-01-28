@@ -1,8 +1,10 @@
-// NextJS - get url param for server component
+// NextJS
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 // Ours
 import { api } from "@/trpc/server";
+import { CreateCharacter } from "@/app/_components/create-character";
 import styles from "./page.module.css";
 
 type StoryPageProps = {
@@ -32,6 +34,17 @@ export default async function StoryPage({
             <li key={timeline.id}>{JSON.stringify(timeline, null, 2)}</li>
           ))}
         </ul>
+      </section>
+      <section className={styles.stories}>
+        <h2>Characters</h2>
+        <ul className={styles.characters__list}>
+          {story.characters.map((character) => (
+            <li key={character.id}>
+              <Link href={`/character/${character.id}`}>{character.name}</Link>
+            </li>
+          ))}
+        </ul>
+        <CreateCharacter storyId={story.id} />
       </section>
     </main>
   );

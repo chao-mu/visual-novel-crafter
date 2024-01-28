@@ -20,12 +20,28 @@ model Story {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  createdBy   User       @relation(fields: [createdById], references: [id])
+  createdBy   User        @relation(fields: [createdById], references: [id])
   createdById String
   timelines   Timeline[]
+  characters  Character[]
 
   @@index([title])
   @@index([createdById])
+}
+
+model Character {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdById String
+  story       Story  @relation(fields: [storyId], references: [id])
+  storyId     Int
+
+  @@index([createdById])
+  @@index([storyId])
 }
 
 model Timeline {
@@ -74,15 +90,16 @@ model Session {
 }
 
 model User {
-  id            String     @id @default(cuid())
+  id            String      @id @default(cuid())
   name          String?
-  email         String?    @unique
+  email         String?     @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   sessions      Session[]
   stories       Story[]
   timeline      Timeline[]
+  Character     Character[]
 }
 
 model VerificationToken {

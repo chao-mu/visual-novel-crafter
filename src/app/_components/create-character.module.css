@@ -1,0 +1,14 @@
+.error {
+  color: red;
+  font-size: 0.8em;
+  margin-top: 0.25em;
+}
+
+.form {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.form > label {
+  flex-basis: 100%;
+}
