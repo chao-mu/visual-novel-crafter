@@ -15,7 +15,7 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "Visual Novel Creator",
+  title: "Visual Novel Crafter",
   description: "Create your own visual novel",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
@@ -31,6 +31,9 @@ export default async function RootLayout({
       <body className={`${inter.className} ${styles.body}`}>
         <header className={styles.header}>
           <p>{session && <span>Logged in as {session.user?.name}</span>}</p>
+          <Link href="/" className={styles["home-button"]}>
+            Visual Novel Crafter
+          </Link>
           <Link
             href={session ? "/api/auth/signout" : "/api/auth/signin"}
             className={styles["login-button"]}
