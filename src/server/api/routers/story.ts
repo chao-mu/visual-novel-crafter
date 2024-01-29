@@ -23,7 +23,12 @@ export const storyRouter = createTRPCRouter({
     .query(({ ctx, input }) => {
       return ctx.db.story.findUnique({
         where: { id: input.id, createdById: ctx.session.user.id },
-        include: { timelines: true, characters: true },
+        include: {
+          timelines: {
+            include: { says: true },
+          },
+          characters: true,
+        },
       });
     }),
 
