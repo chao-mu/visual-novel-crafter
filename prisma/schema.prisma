@@ -46,7 +46,7 @@ model Character {
 
 model Timeline {
   id        Int      @id @default(autoincrement())
-  order     Int
+  title     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

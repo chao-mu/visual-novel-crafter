@@ -1,5 +1,6 @@
 import { storyRouter } from "@/server/api/routers/story";
 import { characterRouter } from "@/server/api/routers/character";
+import { timelineRouter } from "@/server/api/routers/timeline";
 import { createTRPCRouter } from "@/server/api/trpc";
 
 /**
@@ -10,6 +11,7 @@ import { createTRPCRouter } from "@/server/api/trpc";
 export const appRouter = createTRPCRouter({
   story: storyRouter,
   character: characterRouter,
+  timeline: timelineRouter,
 });
 
 // export type definition of API

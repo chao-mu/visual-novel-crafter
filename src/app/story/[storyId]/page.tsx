@@ -31,7 +31,9 @@ export default async function StoryPage({
         <h2>Timelines</h2>
         <ul>
           {story.timelines.map((timeline) => (
-            <li key={timeline.id}>{JSON.stringify(timeline, null, 2)}</li>
+            <li key={timeline.id}>
+              <Link href={`/timeline/${timeline.id}`}>{timeline.title}</Link>
+            </li>
           ))}
         </ul>
       </section>

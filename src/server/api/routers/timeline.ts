@@ -2,32 +2,29 @@ import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
-export const storyRouter = createTRPCRouter({
+export const timelineRouter = createTRPCRouter({
   create: protectedProcedure
-    .input(z.object({ title: z.string().min(1) }))
+    .input(z.object({ title: z.string().min(1), storyId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const createdBy = { connect: { id: ctx.session.user.id } };
-      return ctx.db.story.create({
+      return ctx.db.timeline.create({
         data: {
           createdBy,
           title: input.title,
-          timelines: {
-            create: [{ createdBy, title: "trunk" }],
-          },
+          story: { connect: { id: input.storyId } },
         },
       });
     }),
 
-  getStoryById: protectedProcedure
+  getTimelineById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(({ ctx, input }) => {
-      return ctx.db.story.findUnique({
+      return ctx.db.timeline.findUnique({
         where: { id: input.id, createdById: ctx.session.user.id },
-        include: { timelines: true, characters: true },
       });
     }),
 
   getVisible: protectedProcedure.query(({ ctx }) => {
-    return ctx.db.story.findMany({});
+    return ctx.db.timeline.findMany({});
   }),
 });
