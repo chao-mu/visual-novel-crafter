@@ -1,14 +1,14 @@
-import "@/styles/globals.css";
-
+// NextJs
 import Link from "next/link";
-
 import { Inter } from "next/font/google";
+import { redirect } from "next/navigation";
 
+// Ours
 import { TRPCReactProvider } from "@/trpc/react";
-
 import { getServerAuthSession } from "@/server/auth";
 
 import styles from "./layout.module.css";
+import "@/styles/globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -26,6 +26,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const session = await getServerAuthSession();
+  if (!session) {
+    redirect("/api/auth/signin");
+  }
+
   return (
     <html lang="en">
       <body className={`${inter.className} ${styles.body}`}>
