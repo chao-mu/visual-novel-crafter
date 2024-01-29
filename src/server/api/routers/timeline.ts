@@ -21,10 +21,35 @@ export const timelineRouter = createTRPCRouter({
     .query(({ ctx, input }) => {
       return ctx.db.timeline.findUnique({
         where: { id: input.id, createdById: ctx.session.user.id },
+        include: { says: { include: { character: true } } },
       });
     }),
 
   getVisible: protectedProcedure.query(({ ctx }) => {
     return ctx.db.timeline.findMany({});
   }),
+
+  addSay: protectedProcedure
+    .input(
+      z.object({
+        timelineId: z.number(),
+        characterId: z.number(),
+        order: z.number(),
+        text: z.string().min(1),
+      })
+    )
+    .mutation(
+      async ({ ctx, input: { timelineId, characterId, text, order } }) => {
+        const createdBy = { connect: { id: ctx.session.user.id } };
+        return ctx.db.say.create({
+          data: {
+            createdBy,
+            order,
+            text,
+            timeline: { connect: { id: timelineId } },
+            character: { connect: { id: characterId } },
+          },
+        });
+      }
+    ),
 });

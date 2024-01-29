@@ -25,6 +25,15 @@ export const characterRouter = createTRPCRouter({
         where: { id: input.id, createdById: ctx.session.user.id },
       });
     }),
+
+  getCharactersByStoryId: protectedProcedure
+    .input(z.object({ storyId: z.number() }))
+    .query(({ ctx, input }) => {
+      return ctx.db.character.findMany({
+        where: { storyId: input.storyId, createdById: ctx.session.user.id },
+      });
+    }),
+
   getVisible: protectedProcedure.query(({ ctx }) => {
     return ctx.db.character.findMany({});
   }),
