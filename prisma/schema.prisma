@@ -9,32 +9,42 @@ datasource db {
   relationMode = "prisma"
 }
 
+//
+// User Created Models
+//
+
 model Story {
-  id          Int         @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   title       String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   createdById String
-  createdBy   User        @relation(fields: [createdById], references: [id])
-  timelines   Timeline[]
-  characters  Character[]
+
+  createdBy  User        @relation(fields: [createdById], references: [id])
+  timelines  Timeline[]
+  characters Character[]
+  Image      Image[]
+  Counter    Counter[]
+  Input      Input[]
 
   @@index([title])
   @@index([createdById])
 }
 
 model Say {
-  id          Int       @id @default(autoincrement())
-  order       Int
-  text        String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        Int      @id @default(autoincrement())
+  order     Int
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   createdById String
   timelineId  Int
   characterId Int
-  createdBy   User      @relation(fields: [createdById], references: [id])
-  timeline    Timeline  @relation(fields: [timelineId], references: [id])
-  character   Character @relation(fields: [characterId], references: [id])
+
+  createdBy User      @relation(fields: [createdById], references: [id])
+  timeline  Timeline  @relation(fields: [timelineId], references: [id])
+  character Character @relation(fields: [characterId], references: [id])
 
   @@index([createdById])
   @@index([timelineId])
@@ -42,46 +52,176 @@ model Say {
 }
 
 model Character {
-  id          Int      @id @default(autoincrement())
-  name        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   createdById String
   storyId     Int
-  createdBy   User     @relation(fields: [createdById], references: [id])
-  story       Story    @relation(fields: [storyId], references: [id])
-  says        Say[]
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  story Story @relation(fields: [storyId], references: [id])
+  says  Say[]
 
   @@index([createdById])
   @@index([storyId])
 }
 
 model Timeline {
-  id          Int      @id @default(autoincrement())
-  title       String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   createdById String
   storyId     Int
-  createdBy   User     @relation(fields: [createdById], references: [id])
-  story       Story    @relation(fields: [storyId], references: [id])
+
+  createdBy   User        @relation(fields: [createdById], references: [id])
+  story       Story       @relation(fields: [storyId], references: [id])
   says        Say[]
   menus       Menu[]
+  localJumps  Jump[]      @relation(name: "JumpFromTimeline")
+  remoteJumps Jump[]      @relation(name: "JumpToTimeline")
+  ShowImage   ShowImage[]
 
   @@index([createdById])
   @@index([storyId])
 }
 
-model Menu {
-  id          Int        @id @default(autoincrement())
-  order       Int
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+model Input {
+  id        Int      @id @default(autoincrement())
+  question  String
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   createdById String
-  createdBy   User       @relation(fields: [createdById], references: [id])
+  storyId     Int
   timelineId  Int
-  timeline    Timeline   @relation(fields: [timelineId], references: [id])
-  menuItems   MenuItem[]
+
+  createdBy User  @relation(fields: [createdById], references: [id])
+  story     Story @relation(fields: [storyId], references: [id])
+
+  @@index([createdById])
+  @@index([storyId])
+}
+
+model Jump {
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdById    String
+  fromTimelineId Int
+  toTimelineId   Int
+
+  fromTimeline Timeline @relation(name: "JumpFromTimeline", fields: [fromTimelineId], references: [id])
+  toTimeline   Timeline @relation(name: "JumpToTimeline", fields: [toTimelineId], references: [id])
+  createdBy    User     @relation(fields: [createdById], references: [id])
+
+  @@index([createdById])
+  @@index([fromTimelineId])
+  @@index([toTimelineId])
+}
+
+model Image {
+  id        Int      @id @default(autoincrement())
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String
+  imageTagId  Int
+  storyId     Int
+
+  createdBy User        @relation(fields: [createdById], references: [id])
+  imageTag  ImageTag    @relation(fields: [imageTagId], references: [id])
+  story     Story       @relation(fields: [storyId], references: [id])
+  showImage ShowImage[]
+
+  @@index([createdById])
+  @@index([imageTagId])
+  @@index([storyId])
+}
+
+model ImageTag {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String
+
+  createdBy User    @relation(fields: [createdById], references: [id])
+  images    Image[]
+
+  @@index([createdById])
+}
+
+model ImageAttribute {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ShowImage {
+  id        Int      @id @default(autoincrement())
+  order     Int
+  location  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String
+  imageId     Int
+  timelineId  Int
+
+  createdBy User     @relation(fields: [createdById], references: [id])
+  image     Image    @relation(fields: [imageId], references: [id])
+  timeline  Timeline @relation(fields: [timelineId], references: [id])
+
+  @@index([createdById])
+  @@index([imageId])
+  @@index([timelineId])
+}
+
+model Counter {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  storyId Int
+
+  story         Story           @relation(fields: [storyId], references: [id])
+  CounterChange CounterChange[]
+
+  @@index([storyId])
+}
+
+model CounterChange {
+  id        Int      @id @default(autoincrement())
+  diff      Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  counterId Int
+
+  counter Counter @relation(fields: [counterId], references: [id])
+
+  @@index([counterId])
+}
+
+model Menu {
+  id          Int      @id @default(autoincrement())
+  order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  timelineId  Int
+
+  createdBy User       @relation(fields: [createdById], references: [id])
+  timeline  Timeline   @relation(fields: [timelineId], references: [id])
+  menuItems MenuItem[]
 
   @@index([createdById])
   @@index([timelineId])
@@ -94,18 +234,21 @@ model MenuItem {
   updatedAt DateTime @updatedAt
 
   createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id])
+  menuId      Int
 
-  menuId Int
-  menu   Menu @relation(fields: [menuId], references: [id])
+  createdBy User @relation(fields: [createdById], references: [id])
+  menu      Menu @relation(fields: [menuId], references: [id])
 
   @@index([menuId])
   @@index([createdById])
 }
 
+//
+// Auth models
+//
+
 model Account {
   id                String  @id @default(cuid())
-  userId            String
   type              String
   provider          String
   providerAccountId String
@@ -116,7 +259,10 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
@@ -125,27 +271,13 @@ model Account {
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
-  userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-}
-
-model User {
-  id            String      @id @default(cuid())
-  name          String?
-  email         String?     @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  stories       Story[]
-  timelines     Timeline[]
-  characters    Character[]
-  says          Say[]
-  menu          Menu[]
-  menuItem      MenuItem[]
 }
 
 model VerificationToken {
@@ -154,4 +286,30 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+//
+// User model
+//
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+
+  image      String?
+  accounts   Account[]
+  sessions   Session[]
+  stories    Story[]
+  timelines  Timeline[]
+  characters Character[]
+  says       Say[]
+  menus      Menu[]
+  menuItems  MenuItem[]
+  images     Image[]
+  imageTags  ImageTag[]
+  jumps      Jump[]
+  inputs     Input[]
+  showImages ShowImage[]
 }
