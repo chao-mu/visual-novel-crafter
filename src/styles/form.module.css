@@ -3,6 +3,14 @@
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
+.form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  row-gap: 1rem;
+}
+
 .submission-error,
 .error {
   color: red;

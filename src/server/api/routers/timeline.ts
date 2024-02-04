@@ -21,13 +21,41 @@ export const timelineRouter = createTRPCRouter({
     .query(({ ctx, input }) => {
       return ctx.db.timeline.findUnique({
         where: { id: input.id, createdById: ctx.session.user.id },
-        include: { says: { include: { character: true } } },
+        include: {
+          says: { include: { character: true } },
+          menus: { include: { menuItems: true } },
+        },
       });
     }),
 
   getVisible: protectedProcedure.query(({ ctx }) => {
     return ctx.db.timeline.findMany({});
   }),
+
+  addMenu: protectedProcedure
+    .input(
+      z.object({
+        timelineId: z.number(),
+        order: z.number(),
+        menuItems: z.array(z.object({ text: z.string().min(1) })),
+      })
+    )
+    .mutation(async ({ ctx, input: { timelineId, order, menuItems } }) => {
+      const createdBy = { connect: { id: ctx.session.user.id } };
+      return ctx.db.menu.create({
+        data: {
+          createdBy,
+          order,
+          timeline: { connect: { id: timelineId } },
+          menuItems: {
+            create: menuItems.map((item) => ({
+              createdBy,
+              text: item.text,
+            })),
+          },
+        },
+      });
+    }),
 
   addSay: protectedProcedure
     .input(

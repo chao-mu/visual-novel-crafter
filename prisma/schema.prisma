@@ -66,9 +66,41 @@ model Timeline {
   createdBy   User     @relation(fields: [createdById], references: [id])
   story       Story    @relation(fields: [storyId], references: [id])
   says        Say[]
+  menus       Menu[]
 
   @@index([createdById])
   @@index([storyId])
+}
+
+model Menu {
+  id          Int        @id @default(autoincrement())
+  order       Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  createdById String
+  createdBy   User       @relation(fields: [createdById], references: [id])
+  timelineId  Int
+  timeline    Timeline   @relation(fields: [timelineId], references: [id])
+  menuItems   MenuItem[]
+
+  @@index([createdById])
+  @@index([timelineId])
+}
+
+model MenuItem {
+  id        Int      @id @default(autoincrement())
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  menuId Int
+  menu   Menu @relation(fields: [menuId], references: [id])
+
+  @@index([menuId])
+  @@index([createdById])
 }
 
 model Account {
@@ -112,6 +144,8 @@ model User {
   timelines     Timeline[]
   characters    Character[]
   says          Say[]
+  menu          Menu[]
+  menuItem      MenuItem[]
 }
 
 model VerificationToken {

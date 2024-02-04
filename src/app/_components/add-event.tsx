@@ -1,15 +1,16 @@
 "use client";
 
-// react-hook-form
-import { useForm } from "react-hook-form";
+// React
+import { useState, ReactNode } from "react";
 
 // NextJs
 import { useRouter } from "next/navigation";
 
 // Ours
 import { api } from "@/trpc/react";
-import formStyles from "@/styles/form.module.css";
-import { SubmitButton } from "@/app/_components/submit-button";
+import styles from "./add-event.module.css";
+import { SayForm } from "@/app/_components/say-form";
+import { MenuForm } from "@/app/_components/menu-form";
 
 type AddEventProps = {
   timelineId: number;
@@ -17,53 +18,36 @@ type AddEventProps = {
   order: number;
 };
 
-type SayForm = {
-  text: string;
-  characterId: number;
-  eventType: "say";
-};
-
 export function AddEvent({ timelineId, storyId, order }: AddEventProps) {
-  const router = useRouter();
-  const { register, reset, handleSubmit } = useForm<SayForm>();
   const characters = api.character.getCharactersByStoryId.useQuery({
     storyId,
   });
+  const [eventType, setEventType] = useState("say");
 
-  const onSuccess = () => {
-    reset();
-    router.refresh();
+  const formLookup: Record<string, () => ReactNode> = {
+    say: () => (
+      <SayForm
+        characters={characters.data ?? []}
+        timelineId={timelineId}
+        order={order}
+      />
+    ),
+    menu: () => <MenuForm timelineId={timelineId} order={order} />,
   };
 
-  const addSay = api.timeline.addSay.useMutation({ onSuccess });
-
-  const onSubmit = handleSubmit(({ text, characterId }, e) => {
-    e?.preventDefault();
-    addSay.mutate({
-      text,
-      order,
-      characterId: Number(characterId),
-      timelineId: Number(timelineId),
-    });
-  });
-
-  const isLoading = addSay.isLoading;
+  const form = formLookup[eventType] ?? (() => null);
 
   return (
-    <form onSubmit={onSubmit} className={formStyles["inline-form"]}>
-      <select id="eventType" {...register("eventType")}>
+    <section className={styles["add-event"]}>
+      <select
+        value={eventType}
+        id="eventType"
+        onChange={(e) => setEventType(e.target.value)}
+      >
         <option value="say">Say</option>
+        <option value="menu">Menu</option>
       </select>
-      <select id="characterId" {...register("characterId")}>
-        {characters.data?.map((character) => (
-          <option key={character.id} value={character.id}>
-            {character.name}
-          </option>
-        ))}
-      </select>
-      <input id="text" type="text" placeholder="Text" {...register("text")} />
-      <SubmitButton isLoading={isLoading} />
-      <p className={formStyles["submission-error"]}>{addSay.error?.message}</p>
-    </form>
+      {form()}
+    </section>
   );
 }

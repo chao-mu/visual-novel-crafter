@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 
 // Ours
 import { api } from "@/trpc/server";
-import type { Say } from "@prisma/client";
 import { AddEvent } from "@/app/_components/add-event";
+import styles from "./page.module.css";
 
 type TimelinePageProps = {
   params: {
@@ -13,10 +13,33 @@ type TimelinePageProps = {
 };
 
 type RenderedEvent = {
-  id: number;
   order: number;
   element: JSX.Element;
 };
+
+const SayEvent = (say: {
+  id: number;
+  text: string;
+  character: { name: string };
+}) => (
+  <li key={`say-${say.id}`}>
+    {say.character.name}: {say.text}
+  </li>
+);
+
+const MenuEvent = (menu: {
+  id: number;
+  menuItems: { id: number; text: string }[];
+}) => (
+  <li key={`menu-${menu.id}`}>
+    Menu:
+    <ul>
+      {menu.menuItems.map((item) => (
+        <li key={`menu-item-${item.id}`}>{item.text}</li>
+      ))}
+    </ul>
+  </li>
+);
 
 export default async function TimelinePage({
   params: { timelineId },
@@ -29,28 +52,25 @@ export default async function TimelinePage({
     return notFound();
   }
 
-  const renderSay = (say: Say) => (
-    <div key={`say-${say.id}`}>
-      {say.character.name}: {say.text}
-    </div>
-  );
+  const events: RenderedEvent[] = [
+    ...timeline.says.map((say) => ({
+      order: say.order,
+      element: SayEvent(say),
+    })),
+    ...timeline.menus.map((menu) => ({
+      order: menu.order,
+      element: MenuEvent(menu),
+    })),
+  ];
 
-  const events: RenderedEvent[] = timeline.says.map((say) => ({
-    id: say.id,
-    order: say.order,
-    element: renderSay(say),
-  }));
+  const sortedEvents = events
+    .sort((a, b) => a.order - b.order)
+    .map(({ element }) => element);
 
   return (
     <>
       <h1>{timeline.title}</h1>
-      <ol>
-        {events
-          .sort((a, b) => a.order - b.order)
-          .map(({ id, element }) => (
-            <li key={id}>{element}</li>
-          ))}
-      </ol>
+      <ol className={styles.timeline}>{sortedEvents}</ol>
       <AddEvent
         storyId={timeline.storyId}
         timelineId={timeline.id}
