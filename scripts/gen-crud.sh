@@ -3,13 +3,19 @@
 set -e
 
 name=$1
-placeholder="story"
+placeholder=$2
+
+if [ "$#" -ne 2 ]; then
+  echo "Usage: gen-crud.sh <name> <placeholder>"
+  exit 1
+fi
+
 capitalized_placeholder="${placeholder^}"
-form_component_template=src/app/_components/create-story.tsx
-form_style_template=src/app/_components/create-story.module.css
-page_template="src/app/story/[storyId]/page.tsx"
-page_style_template="src/app/story/[storyId]/page.module.css"
-api_template="src/server/api/routers/story.ts"
+form_component_template="src/app/_components/create-$placeholder.tsx"
+form_style_template="src/app/_components/create-$placeholder.module.css"
+page_template="src/app/$placeholder/[${placeholder}Id]/page.tsx"
+page_style_template="src/app/$placeholder/[${placeholder}Id]/page.module.css"
+api_template="src/server/api/routers/$placeholder.ts"
 
 templates=(
   "$form_component_template"
