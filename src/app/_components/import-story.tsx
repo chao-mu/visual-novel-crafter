@@ -14,6 +14,13 @@ import { SubmitButton } from "@/app/_components/submit-button";
 
 import type { docs_v1 } from "googleapis";
 
+type ToCodeArgs = {
+  timelineLabels: string[];
+  characters: string[];
+  firstTimeline?: string;
+  statements: Statement[];
+};
+
 type Document = docs_v1.Schema$Document;
 type Paragraph = docs_v1.Schema$Paragraph;
 
@@ -55,67 +62,76 @@ type ParserArgs = {
   doc: Document;
   line: string;
   level: number;
+  index: number;
 };
 
 const INDENT = " ".repeat(4);
 
 const toRenpyString = (text: string) => JSON.stringify(text);
 
-type Statement = {
+type CodeGenerator = {
   kind: string;
   toCode: (args: ToCodeArgs) => string;
   topLevel?: boolean;
 };
 
-type ParserFunc<T extends Statement> = (args: ParserArgs) => T | null;
+type ParserFunc<T extends CodeGenerator> = (args: ParserArgs) => T | null;
 
 type Comment = {
   kind: "comment";
   text: string;
-} & Statement;
+} & CodeGenerator;
 
 type MenuItem = {
   kind: "menu-item";
   option: string;
-} & Statement;
+} & CodeGenerator;
 
 type TimelineStart = {
   kind: "timeline-label";
   title: string;
   label: string;
-} & Statement;
+} & CodeGenerator;
 
 type TimelinesStart = {
   kind: "start";
-} & Statement;
+} & CodeGenerator;
 
 type SceneStatement = {
   kind: "scene";
   tag: string;
   attributes: string[];
-} & Statement;
+} & CodeGenerator;
+
+type InputStatement = {
+  kind: "input";
+  variable: string;
+  prompt: string;
+} & CodeGenerator;
 
 type Assignment = {
   kind: "assignment";
   variable: string;
   value: string;
   operator?: string;
-} & Statement;
+} & CodeGenerator;
 
 type JumpStatement = {
   kind: "jump";
   destination: string;
-} & Statement;
+} & CodeGenerator;
 
 type MenuStart = {
   kind: "menu-start";
-} & Statement;
+  index: number;
+  label: string;
+} & CodeGenerator;
 
 type ShowStatement = {
   kind: "show";
   tag: string;
   attributes: string[];
-} & Statement;
+} & CodeGenerator;
 
 type SayStatement = {
   kind: "say";
@@ -125,7 +141,49 @@ type SayStatement = {
   action?: string;
   attributes: string[];
   characterVarName: string;
-} & Statement;
+} & CodeGenerator;
+
+type RepeatMenuStatement = {
+  kind: "repeat-menu";
+} & CodeGenerator;
+
+type Statement =
+  | Comment
+  | MenuItem
+  | TimelineStart
+  | TimelinesStart
+  | SceneStatement
+  | Assignment
+  | JumpStatement
+  | MenuStart
+  | ShowStatement
+  | SayStatement
+  | RepeatMenuStatement
+  | InputStatement;
+
+const parseRepeatMenuStatement: ParserFunc<RepeatMenuStatement> = ({
+  line,
+  index,
+}) => {
+  if (line.toLowerCase() != "repeat menu") {
+    return null;
+  }
+
+  return {
+    kind: "repeat-menu",
+    toCode: ({ statements }) => {
+      const lastMenu = statements
+        .reverse()
+        .find((s) => isMenuStart(s) && s.index < index);
+
+      if (!lastMenu || !isMenuStart(lastMenu)) {
+        throw new ParseError("No previous menu found");
+      }
+
+      return `jump ${lastMenu.label}`;
+    },
+  };
+};
 
 const parseComment: ParserFunc<Comment> = ({ line }) => {
   if (!line.startsWith("[")) {
@@ -176,6 +234,9 @@ const parseTimelineStart: ParserFunc<TimelineStart> = ({ line, p }) => {
 const isTimelineStart = (statement: Statement): statement is TimelineStart =>
   statement.kind === "timeline-label";
 
+const isMenuStart = (statement: Statement): statement is MenuStart =>
+  statement.kind === "menu-start";
+
 const parseTimelinesStart: ParserFunc<TimelinesStart> = ({ line, p }) => {
   if (getHeadingLevel(p) !== 1) {
     return null;
@@ -211,7 +272,7 @@ const parseSceneStatement: ParserFunc<SceneStatement> = ({ line }) => {
   };
 };
 
-const parseInputStatement: ParserFunc<Statement> = ({ line }) => {
+const parseInputStatement: ParserFunc<InputStatement> = ({ line }) => {
   const m = line.match(/^\$(\w+) = input (.*?)$/);
   if (!m) {
     return null;
@@ -231,6 +292,8 @@ const parseInputStatement: ParserFunc<Statement> = ({ line }) => {
   }
 
   return {
+    prompt,
+    variable,
     kind: "input",
     toCode: () => `$${variable} = input(${toRenpyString(prompt)})`,
   };
@@ -282,15 +345,22 @@ const parseJumpStatement: ParserFunc<JumpStatement> = ({ line }) => {
   };
 };
 
-const parseMenuStart: ParserFunc<MenuStart> = ({ line }) => {
+const parseMenuStart: ParserFunc<MenuStart> = ({ line, index }) => {
   if (!/^Menu\s*:/i.test(line)) {
     return null;
   }
 
+  const label = toLabelName(`menu_${index}`);
+  const optionsVar = "options";
+
   return {
+    label,
+    index,
     kind: "menu-start",
     toCode: () =>
-      [`menu ${toLabelName("menu")}:`, `${INDENT}set options`].join("\n"),
+      [`$${optionsVar} = []`, `menu ${label}:`, `${INDENT}set options`].join(
+        "\n",
+      ),
   };
 };
 
@@ -407,6 +477,7 @@ function parseScript(doc: Document): ParsedScript {
     return getHeadingLevel(p) === 1 && getText(p) === timelinesHeader;
   });
 
+  let statementIndex = 0;
   for (const p of paragraphs.slice(timelinesStartAt)) {
     const line = getText(p)?.replace(/\s+/g, " ").trim();
     if (!line) {
@@ -418,6 +489,7 @@ function parseScript(doc: Document): ParsedScript {
       doc,
       line,
       level: getBulletLevel(p),
+      index: statementIndex++,
     };
 
     const parsers: ParserFunc<Statement>[] = [
@@ -429,6 +501,7 @@ function parseScript(doc: Document): ParsedScript {
       parseInputStatement,
       parseAssignment,
       parseJumpStatement,
+      parseRepeatMenuStatement,
       parseMenuStart,
       parseShowStatement,
       parseSayStatement,
@@ -484,12 +557,6 @@ function parseScript(doc: Document): ParsedScript {
   return script;
 }
 
-type ToCodeArgs = {
-  timelineLabels: string[];
-  characters: string[];
-  firstTimeline?: string;
-};
-
 const scriptToCode = (script: ParsedScript): string => {
   const characters = new Set<string>();
   for (const { statement } of script.body) {
@@ -511,10 +578,23 @@ const scriptToCode = (script: ParsedScript): string => {
   });
 
   const toCodeArgs: ToCodeArgs = {
+    statements: script.body.map(({ statement }) => statement),
     characters: [...characters],
     timelineLabels,
     firstTimeline: timelineLabels[0],
   };
+
+  const attributesByTag = new Map<string, Set<string>>();
+  for (const { statement } of script.body) {
+    if ("tag" in statement && "attributes" in statement) {
+      const attribs = attributesByTag.get(statement.tag) ?? new Set();
+      for (const a of statement.attributes) {
+        attribs.add(a);
+      }
+
+      attributesByTag.set(statement.tag, attribs);
+    }
+  }
 
   const body = script.body
     .flatMap(({ statement, lineInfo }) => {
