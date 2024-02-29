@@ -1,8 +1,11 @@
 export const INDENT = " ".repeat(4);
 
-export const toCharacterName = (text: string) => toVarName(text, "chr");
+export const toCharacterVar = (text: string) => toVarName(text, "chr");
 
-export const toLabelName = (text: string) => toVarName(text, "label");
+export const toCharacterNameVar = (text: string) =>
+  toCharacterVar(text) + "_name";
+
+export const toLabelVar = (text: string) => toVarName(text, "label");
 
 export const toRenpyString = (text: string) => JSON.stringify(text);
 

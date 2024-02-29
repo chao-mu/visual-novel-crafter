@@ -24,6 +24,9 @@ export type ParsedScript = {
     statement: Statement;
     lineInfo: LineInfo;
   }[];
+  metadata: {
+    attributesByTag: Map<string, Set<string>>;
+  };
 };
 
 function getText(p: Paragraph) {
@@ -61,6 +64,9 @@ export function parseScript(doc: Document): ParsedScript {
   const script: ParsedScript = {
     errors: [],
     body: [],
+    metadata: {
+      attributesByTag: new Map(),
+    },
   };
 
   const content = doc.body?.content;
@@ -135,6 +141,18 @@ export function parseScript(doc: Document): ParsedScript {
           parser: "unknown",
         },
       });
+    }
+  }
+
+  const attributesByTag = script.metadata.attributesByTag;
+  for (const { statement } of script.body) {
+    if ("tag" in statement && "attributes" in statement) {
+      const attribs = attributesByTag.get(statement.tag) ?? new Set();
+      for (const a of statement.attributes) {
+        attribs.add(a);
+      }
+
+      attributesByTag.set(statement.tag, attribs);
     }
   }
 

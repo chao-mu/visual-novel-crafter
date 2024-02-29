@@ -12,6 +12,7 @@ import formStyles from "@/styles/form.module.css";
 import utilStyles from "@/styles/util.module.css";
 import { SubmitButton } from "@/app/_components/submit-button";
 import { parseScript, scriptToCode } from "@/script";
+import type { ParsedScript } from "@/script";
 
 type Form = {
   url: string;
@@ -19,13 +20,14 @@ type Form = {
 
 export function ImportStory() {
   const { register, handleSubmit } = useForm<Form>();
-  const [parserError, setParserError] = useState<string | null>(null);
+  const [parsedScript, setParsedScript] = useState<ParsedScript | null>(null);
 
   const loadScript = api.script.loadScript.useMutation({
     onSuccess: (data) => {
       const script = parseScript(data);
+      setParsedScript(script);
       if (script.errors.length > 0) {
-        setParserError(JSON.stringify(script.errors, null, 2));
+        return;
       }
 
       const output = scriptToCode(script);
@@ -44,7 +46,7 @@ export function ImportStory() {
     element.href = window.URL.createObjectURL(
       new Blob([content], { type: "text/plain" }),
     );
-    element.download = "renpy.rpy";
+    element.download = "script.rpy";
     document.body.appendChild(element); // Required for this to work in FireFox
     element.click();
     element.remove();
@@ -62,7 +64,22 @@ export function ImportStory() {
       <p className={formStyles["submission-error"]}>
         {loadScript.error?.message}
       </p>
-      <pre className={utilStyles.code}>{parserError}</pre>
+      {parsedScript &&
+        (parsedScript.errors.length > 0 ? (
+          <pre className={utilStyles.code}>
+            {JSON.stringify(parsedScript, null, 2)}
+          </pre>
+        ) : (
+          <ul>
+            {[...parsedScript.metadata.attributesByTag.entries()].map(
+              ([tag, attributes]) => (
+                <li key={tag}>
+                  {tag} - {[...attributes].join(", ")}
+                </li>
+              ),
+            )}
+          </ul>
+        ))}
     </form>
   );
 }

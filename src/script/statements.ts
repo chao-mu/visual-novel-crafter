@@ -4,7 +4,6 @@ export type ToCodeArgs = {
   firstTimeline?: string;
   statements: Statement[];
 };
-
 export type CodeGenerator = {
   kind: string;
   toCode: (args: ToCodeArgs) => string;
@@ -74,7 +73,7 @@ export type SayStatement = {
   text: string;
   action?: string;
   attributes: string[];
-  characterVarName: string;
+  characterVar: string;
 } & CodeGenerator;
 
 export type RepeatMenuStatement = {

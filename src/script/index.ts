@@ -1,2 +1,2 @@
 export { scriptToCode } from "./scriptToCode";
-export { parseScript } from "./parseScript";
+export { parseScript, type ParsedScript } from "./parseScript";

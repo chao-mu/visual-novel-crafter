@@ -7,7 +7,7 @@ export const scriptToCode = (script: ParsedScript): string => {
   const characters = new Set<string>();
   for (const { statement } of script.body) {
     if (isSayStatement(statement)) {
-      characters.add(statement.characterVarName);
+      characters.add(statement.characterVar);
     }
   }
 
@@ -29,18 +29,6 @@ export const scriptToCode = (script: ParsedScript): string => {
     timelineLabels,
     firstTimeline: timelineLabels[0],
   };
-
-  const attributesByTag = new Map<string, Set<string>>();
-  for (const { statement } of script.body) {
-    if ("tag" in statement && "attributes" in statement) {
-      const attribs = attributesByTag.get(statement.tag) ?? new Set();
-      for (const a of statement.attributes) {
-        attribs.add(a);
-      }
-
-      attributesByTag.set(statement.tag, attribs);
-    }
-  }
 
   const body = script.body
     .flatMap(({ statement, lineInfo }) => {

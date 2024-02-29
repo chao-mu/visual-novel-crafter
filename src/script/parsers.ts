@@ -18,7 +18,13 @@ import type {
 
 import { isMenuStart } from "./statements";
 
-import { toRenpyString, toLabelName, toCharacterName, INDENT } from "./renpy";
+import {
+  toRenpyString,
+  toLabelVar,
+  toCharacterVar,
+  toCharacterNameVar,
+  INDENT,
+} from "./renpy";
 
 export type ParserArgs = {
   line: string;
@@ -92,7 +98,7 @@ const parseTimelineStart: ParserFunc<TimelineStart> = ({
   }
 
   const title = line;
-  const label = toLabelName(title);
+  const label = toLabelVar(title);
 
   return {
     title,
@@ -131,7 +137,7 @@ const parseSceneStatement: ParserFunc<SceneStatement> = ({ line }) => {
     return null;
   }
 
-  const [, tag, ...attributes] = line.split(" ");
+  const [, tag, ...attributes] = line.toLowerCase().split(" ");
 
   return {
     tag: tag ?? "",
@@ -210,7 +216,7 @@ const parseJumpStatement: ParserFunc<JumpStatement> = ({ line }) => {
   return {
     destination: dest ?? "",
     kind: "jump",
-    toCode: () => `jump ${toLabelName(dest)}`,
+    toCode: () => `jump ${toLabelVar(dest)}`,
   };
 };
 
@@ -219,7 +225,7 @@ const parseMenuStart: ParserFunc<MenuStart> = ({ line, index }) => {
     return null;
   }
 
-  const label = toLabelName(`menu_${index}`);
+  const label = toLabelVar(`menu_${index}`);
   const optionsVar = "options";
 
   return {
@@ -238,7 +244,7 @@ const parseShowStatement: ParserFunc<ShowStatement> = ({ line }) => {
     return null;
   }
 
-  const [, tag, ...attributes] = line.split(" ");
+  const [, tag, ...attributes] = line.toLowerCase().split(" ");
 
   if (!tag) {
     throw new ParseError("No tag found");
@@ -273,31 +279,32 @@ const parseSayStatement: ParserFunc<SayStatement> = ({ line }) => {
   const speaker = tokens[0] ?? "anon";
   const attributes = tokens.slice(1);
 
-  const characterVarName = toCharacterName(speaker);
+  const characterVar = toCharacterVar(speaker);
 
   return {
     attributes,
     alias,
-    characterVarName,
+    characterVar,
     text,
     action,
     speaker: speaker ?? "anon",
     kind: "say",
     toCode: () => {
-      const aliasStr = alias ?? action;
-      const cmd = aliasStr ? toRenpyString(aliasStr) : characterVarName;
+      const say = [
+        characterVar,
+        ...attributes,
+        toRenpyString(textSection),
+      ].join(" ");
 
-      /*
-      const aliasStr = toRenpyString(alias ?? action ?? "");
-      if (characterVarName && (alias ?? action)) {
-        cmd = `${characterVarName} as ${aliasStr}`;
-      } else if (characterVarName) {
-        cmd = characterVarName;
-      } else {
-        cmd = aliasStr;
+      const aliasStr = alias ?? action;
+      if (aliasStr) {
+        return [
+          say,
+          `$${toCharacterNameVar(speaker)} = ${toRenpyString(aliasStr)}`,
+        ].join("\n");
       }
-      */
-      return [cmd, ...attributes, toRenpyString(textSection)].join(" ");
+
+      return say;
     },
   };
 };
