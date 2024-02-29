@@ -3,8 +3,8 @@
 // react-hook-form
 import { useForm } from "react-hook-form";
 
-// NextJs
-import { useRouter } from "next/navigation";
+// React
+import { useState } from "react";
 
 // Ours
 import { api } from "@/trpc/react";
@@ -18,13 +18,18 @@ type Form = {
 };
 
 export function ImportStory() {
-  const router = useRouter();
-  const { register, reset, handleSubmit } = useForm<Form>();
+  const { register, handleSubmit } = useForm<Form>();
+  const [parserError, setParserError] = useState<string | null>(null);
 
   const loadScript = api.script.loadScript.useMutation({
-    onSuccess: () => {
-      reset();
-      router.refresh();
+    onSuccess: (data) => {
+      const script = parseScript(data);
+      if (script.errors.length > 0) {
+        setParserError(JSON.stringify(script.errors, null, 2));
+      }
+
+      const output = scriptToCode(script);
+      download(output);
     },
   });
 
@@ -33,21 +38,17 @@ export function ImportStory() {
     loadScript.mutate({ url });
   });
 
-  const script = loadScript.data ? parseScript(loadScript.data) : null;
+  const download = (content: string) => {
+    const element = document.createElement("a");
 
-  let output = "...";
-  if (script) {
-    const { errors } = script;
-    if (errors.length > 0) {
-      output = JSON.stringify(errors, null, 2);
-    } else {
-      output = scriptToCode(script);
-    }
-  }
-
-  const downloadUrl = window.URL.createObjectURL(
-    new Blob([output], { type: "text/plain" }),
-  );
+    element.href = window.URL.createObjectURL(
+      new Blob([content], { type: "text/plain" }),
+    );
+    element.download = "renpy.rpy";
+    document.body.appendChild(element); // Required for this to work in FireFox
+    element.click();
+    element.remove();
+  };
 
   return (
     <form onSubmit={onSubmit} className={formStyles["inline-form"]}>
@@ -61,10 +62,7 @@ export function ImportStory() {
       <p className={formStyles["submission-error"]}>
         {loadScript.error?.message}
       </p>
-      <a href={downloadUrl} download="script.rpy">
-        Download
-      </a>
-      <pre className={utilStyles.code}>{output}</pre>
+      <pre className={utilStyles.code}>{parserError}</pre>
     </form>
   );
 }
