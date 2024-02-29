@@ -5,6 +5,8 @@ import Link from "next/link";
 // Ours
 import { api } from "@/trpc/server";
 import { CreateCharacter } from "@/app/_components/create-character";
+import { ImportStory } from "@/app/_components/import-story";
+
 import styles from "./page.module.css";
 
 type StoryPageProps = {
@@ -47,6 +49,11 @@ export default async function StoryPage({
           ))}
         </ul>
         <CreateCharacter storyId={story.id} />
+      </section>
+      <section className={styles.import}>
+        <h2>Import</h2>
+        <p>Import characters from Google Docs</p>
+        <ImportStory />
       </section>
     </>
   );
