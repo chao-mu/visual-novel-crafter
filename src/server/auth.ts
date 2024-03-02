@@ -14,45 +14,6 @@ import { google } from "googleapis";
 import { env } from "@/env";
 import { db } from "@/server/db";
 
-// From https://next-auth.js.org/v3/tutorials/refresh-token-rotation
-async function refreshAccessToken(token) {
-  try {
-    const url =
-      "https://oauth2.googleapis.com/token?" +
-      new URLSearchParams({
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        grant_type: "refresh_token",
-        refresh_token: token.refreshToken,
-      });
-
-    const response = await fetch(url, {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      method: "POST",
-    });
-
-    const refreshedTokens = await response.json();
-
-    if (!response.ok) {
-      throw refreshedTokens;
-    }
-
-    return {
-      ...token,
-      accessToken: refreshedTokens.access_token,
-      accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
-      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken, // Fall back to old refresh token
-    };
-  } catch (error) {
-    return {
-      ...token,
-      error: "RefreshAccessTokenError",
-    };
-  }
-}
-
 export async function refreshGoogleAccessToken({
   refreshToken,
 }: {
@@ -84,6 +45,7 @@ export async function refreshGoogleAccessToken({
 declare module "next-auth" {
   interface Session extends DefaultSession {
     accessTokenExpires?: Date;
+    error: string;
     user: {
       id: string;
       // ...other properties
@@ -105,32 +67,15 @@ declare module "next-auth" {
 export const authOptions: NextAuthOptions = {
   callbacks: {
     session: async ({ session, user }) => {
-      return {
+      session = {
         ...session,
         user: {
           ...session.user,
           id: user.id,
         },
       };
-    },
-    // From https://next-auth.js.org/v3/tutorials/refresh-token-rotation
-    async jwt(token, user, account) {
-      // Initial sign in
-      if (account && user) {
-        return {
-          accessToken: account.accessToken,
-          accessTokenExpires: Date.now() + account.expires_in * 1000,
-          refreshToken: account.refresh_token,
-          user,
-        };
-      }
-      // Return previous token if the access token has not expired yet
-      if (Date.now() < token.accessTokenExpires) {
-        return token;
-      }
 
-      // Access token has expired, try to update it
-      return refreshAccessToken(token);
+      return session;
     },
   },
   adapter: PrismaAdapter(db),
@@ -150,6 +95,30 @@ export const authOptions: NextAuthOptions = {
             "https://www.googleapis.com/auth/drive.readonly",
           ].join(" "),
         },
+      },
+      profile: async (profile, tokens) => {
+        profile = {
+          ...profile,
+          id: profile.sub,
+        };
+
+        if (!tokens.expires_at || !tokens.refresh_token) {
+          return profile;
+        }
+
+        await db.account.updateMany({
+          data: {
+            access_token: tokens.access_token,
+            expires_at: tokens.expires_at / 1000,
+            refresh_token: tokens.refresh_token,
+          },
+          where: {
+            providerAccountId: profile.sub,
+            provider: "google",
+          },
+        });
+
+        return profile;
       },
     }),
     /**
