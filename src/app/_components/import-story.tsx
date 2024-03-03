@@ -67,7 +67,7 @@ export function ImportStory() {
       {parsedScript &&
         (parsedScript.errors.length > 0 ? (
           <pre className={utilStyles.code}>
-            {JSON.stringify(parsedScript, null, 2)}
+            {JSON.stringify(parsedScript.errors, null, 2)}
           </pre>
         ) : (
           <ul>
