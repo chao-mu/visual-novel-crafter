@@ -28,13 +28,12 @@ export const scriptToCode = (script: ParsedScript): string => {
     generateDefineChar(c),
   );
 
-  const numberDefs = [...script.body].flatMap(({ statement }) => {
+  const numberDefs = new Set<string>();
+  for (const { statement } of script.body) {
     if (isNumericAssignment(statement)) {
-      return generateDefineNumber(statement.variable);
+      numberDefs.add(generateDefineNumber(statement.variable));
     }
-
-    return [];
-  });
+  }
 
   const timelineLabels = script.body.flatMap(({ statement }) => {
     if (isTimelineStart(statement)) {
@@ -67,6 +66,6 @@ export const scriptToCode = (script: ParsedScript): string => {
   });
 
   return [numberDefs, characterDefs, body]
-    .map((code) => code.join("\n"))
+    .map((code) => [...code].join("\n"))
     .join("\n\n");
 };

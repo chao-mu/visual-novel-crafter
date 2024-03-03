@@ -346,7 +346,6 @@ export const parsers: ParserFunc<Statement>[] = [
   parseSceneStatement,
   parseInputStatement,
   parseNumericAssignment,
-
   parseJumpStatement,
   parseRepeatMenuStatement,
   parseMenuStart,
