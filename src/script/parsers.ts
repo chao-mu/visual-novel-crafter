@@ -220,15 +220,16 @@ const parseJumpStatement: ParserFunc<JumpStatement> = ({ line }) => {
     return null;
   }
 
-  const [, dest] = line.split(" ", 2);
-  if (!dest) {
+  const [, ...tokens] = line.split(" ");
+  const destination = tokens.join(" ");
+  if (!tokens) {
     throw new ParseError("No jump destination specified");
   }
 
   return {
-    destination: dest ?? "",
+    destination,
     kind: "jump",
-    toCode: () => `jump ${toLabelVar(dest)}`,
+    toCode: () => `jump ${toLabelVar(destination)}`,
   };
 };
 
