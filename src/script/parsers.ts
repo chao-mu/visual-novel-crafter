@@ -9,7 +9,7 @@ import type {
   TimelinesStart,
   SceneStatement,
   InputStatement,
-  Assignment,
+  NumericAssignment,
   JumpStatement,
   MenuStart,
   ShowStatement,
@@ -180,7 +180,7 @@ const parseInputStatement: ParserFunc<InputStatement> = ({ line }) => {
   };
 };
 
-const parseAssignment: ParserFunc<Assignment> = ({ line }) => {
+const parseNumericAssignment: ParserFunc<NumericAssignment> = ({ line }) => {
   if (!line.startsWith("$")) {
     return null;
   }
@@ -200,11 +200,16 @@ const parseAssignment: ParserFunc<Assignment> = ({ line }) => {
     throw new ParseError("No value found");
   }
 
+  const numericValue = Number(value);
+  if (isNaN(numericValue)) {
+    throw new ParseError("Expected a numeric value in assignment");
+  }
+
   return {
     variable,
-    value,
     operator,
-    kind: "assignment",
+    value: numericValue,
+    kind: "numeric-assignment",
     toCode: () => `$${variable} ${operator ?? ""}= ${value}`,
   };
 };
@@ -323,6 +328,14 @@ const parseSayStatement: ParserFunc<SayStatement> = ({ line }) => {
   };
 };
 
+/*
+export function isNumericAssignment(
+  stmt: Statement,
+): stmt is ReturnType<typeof parseNumericAssignment> {
+  return stmt.kind === "numeric-assignment";
+}
+*/
+
 export const parsers: ParserFunc<Statement>[] = [
   parseComment,
   parseMenuItem,
@@ -330,7 +343,8 @@ export const parsers: ParserFunc<Statement>[] = [
   parseTimelinesStart,
   parseSceneStatement,
   parseInputStatement,
-  parseAssignment,
+  parseNumericAssignment,
+
   parseJumpStatement,
   parseRepeatMenuStatement,
   parseMenuStart,

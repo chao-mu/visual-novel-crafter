@@ -44,10 +44,10 @@ export type InputStatement = {
   prompt: string;
 } & CodeGenerator;
 
-export type Assignment = {
-  kind: "assignment";
+export type NumericAssignment = {
+  kind: "numeric-assignment";
   variable: string;
-  value: string;
+  value: number;
   operator?: string;
 } & CodeGenerator;
 
@@ -87,13 +87,17 @@ export type Statement =
   | TimelineStart
   | TimelinesStart
   | SceneStatement
-  | Assignment
+  | NumericAssignment
   | JumpStatement
   | MenuStart
   | ShowStatement
   | SayStatement
   | RepeatMenuStatement
   | InputStatement;
+
+export const isNumericAssignment = (
+  statement: Statement,
+): statement is NumericAssignment => statement.kind === "numeric-assignment";
 
 export const isSayStatement = (
   statement: Statement,
