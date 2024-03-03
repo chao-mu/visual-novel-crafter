@@ -176,7 +176,8 @@ const parseInputStatement: ParserFunc<InputStatement> = ({ line }) => {
     prompt,
     variable,
     kind: "input",
-    toCode: () => `$${variable} = input(${toRenpyString(prompt)})`,
+    toCode: () =>
+      `$${variable} = renpy.input(${toRenpyString(prompt)}).strip()`,
   };
 };
 
