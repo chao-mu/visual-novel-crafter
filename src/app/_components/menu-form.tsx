@@ -1,7 +1,12 @@
 "use client";
 
 // react-hook-form
-import { useForm, useFieldArray } from "react-hook-form";
+import {
+  useForm,
+  useFieldArray,
+  UseFormRegister,
+  Control,
+} from "react-hook-form";
 
 // NextJs
 import { useRouter } from "next/navigation";
@@ -22,7 +27,12 @@ type MenuFormValues = {
   }[];
 };
 
-function MenuItemsFields({ control, register }) {
+type MenuItemsFieldsProps = {
+  control: Control<MenuFormValues, any>;
+  register: UseFormRegister<MenuFormValues>;
+};
+
+function MenuItemsFields({ control, register }: MenuItemsFieldsProps) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: "menuItems",

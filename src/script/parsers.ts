@@ -21,9 +21,9 @@ import { isMenuStart } from "./statements";
 import {
   toRenpyString,
   toLabelVar,
-  toCharacterVar,
-  toCharacterNameVar,
+  toCharacter,
   INDENT,
+  toBareword,
 } from "./renpy";
 
 export type ParserArgs = {
@@ -35,6 +35,9 @@ export type ParserArgs = {
 };
 
 export type ParserFunc<T extends Statement> = (args: ParserArgs) => T | null;
+
+const tokenizeBarewords = (text: string): string[] =>
+  text.split(" ").map(toBareword);
 
 const parseRepeatMenuStatement: ParserFunc<RepeatMenuStatement> = ({
   line,
@@ -137,11 +140,14 @@ const parseSceneStatement: ParserFunc<SceneStatement> = ({ line }) => {
     return null;
   }
 
-  const [, tag, ...attributes] = line.toLowerCase().split(" ");
+  const [, tag, ...attributes] = tokenizeBarewords(line);
+  if (!tag) {
+    throw new ParseError("Scene statement missing tag");
+  }
 
   return {
-    tag: tag ?? "",
-    attributes: attributes ?? [],
+    tag: tag,
+    attributes: attributes,
     kind: "scene",
     toCode: () => `scene ${tag} ${attributes.join(" ")}`,
   };
@@ -244,10 +250,10 @@ const parseShowStatement: ParserFunc<ShowStatement> = ({ line }) => {
     return null;
   }
 
-  const [, tag, ...attributes] = line.toLowerCase().split(" ");
+  const [, tag, ...attributes] = tokenizeBarewords(line);
 
   if (!tag) {
-    throw new ParseError("No tag found");
+    throw new ParseError("Show statement missing tag");
   }
 
   return {
@@ -275,33 +281,36 @@ const parseSayStatement: ParserFunc<SayStatement> = ({ line }) => {
   const text = textSection.trim();
   const alias = speakerSection.match(/\((.+?)\)/)?.[1];
   const action = speakerSection.match(/\[(.+?)\]/)?.[1];
-  const tokens = speakerSection.replaceAll(/(\(.+?\)|\[.+?\])/g, "").split(" ");
-  const speaker = tokens[0] ?? "anon";
-  const attributes = tokens.slice(1);
+  const [tag, ...attributes] = tokenizeBarewords(
+    speakerSection.replaceAll(/(\(.+?\)|\[.+?\])/g, ""),
+  );
 
-  const characterVar = toCharacterVar(speaker);
+  if (!tag) {
+    throw new ParseError("No speaker tag specified");
+  }
+
+  const character = toCharacter(tag);
 
   return {
+    character,
     attributes,
     alias,
-    characterVar,
     text,
     action,
-    speaker: speaker ?? "anon",
+    tag,
     kind: "say",
     toCode: () => {
       const say = [
-        characterVar,
+        character.charVar,
         ...attributes,
         toRenpyString(textSection),
       ].join(" ");
 
       const aliasStr = alias ?? action;
       if (aliasStr) {
-        return [
-          say,
-          `$${toCharacterNameVar(speaker)} = ${toRenpyString(aliasStr)}`,
-        ].join("\n");
+        return [`$${character.nameVar} = ${toRenpyString(aliasStr)}`, say].join(
+          "\n",
+        );
       }
 
       return say;

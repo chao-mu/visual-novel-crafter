@@ -7,7 +7,7 @@ export const scriptToCode = (script: ParsedScript): string => {
   const characters = new Set<string>();
   for (const { statement } of script.body) {
     if (isSayStatement(statement)) {
-      characters.add(statement.characterVar);
+      characters.add(statement.tag);
     }
   }
 

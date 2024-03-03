@@ -68,12 +68,11 @@ export type ShowStatement = {
 
 export type SayStatement = {
   kind: "say";
-  speaker: string;
+  tag: string;
   alias?: string;
   text: string;
   action?: string;
   attributes: string[];
-  characterVar: string;
 } & CodeGenerator;
 
 export type RepeatMenuStatement = {
