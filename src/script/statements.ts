@@ -1,6 +1,8 @@
+import { Character } from "./types";
+
 export type ToCodeArgs = {
   timelineLabels: string[];
-  characters: string[];
+  characters: Character[];
   firstTimeline?: string;
   statements: Statement[];
 };
@@ -67,8 +69,8 @@ export type ShowStatement = {
 } & CodeGenerator;
 
 export type SayStatement = {
+  character?: Character;
   kind: "say";
-  tag: string;
   alias?: string;
   text: string;
   action?: string;

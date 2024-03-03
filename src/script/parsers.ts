@@ -1,4 +1,4 @@
-import { ParseError } from "./types";
+import { ParseError, Character } from "./types";
 
 import type {
   Statement,
@@ -285,11 +285,10 @@ const parseSayStatement: ParserFunc<SayStatement> = ({ line }) => {
     speakerSection.replaceAll(/(\(.+?\)|\[.+?\])/g, ""),
   );
 
-  if (!tag) {
-    throw new ParseError("No speaker tag specified");
+  let character: undefined | Character;
+  if (tag) {
+    character = toCharacter(tag);
   }
-
-  const character = toCharacter(tag);
 
   return {
     character,
@@ -300,20 +299,26 @@ const parseSayStatement: ParserFunc<SayStatement> = ({ line }) => {
     tag,
     kind: "say",
     toCode: () => {
-      const say = [
-        character.charVar,
-        ...attributes,
-        toRenpyString(textSection),
-      ].join(" ");
-
+      const code = [];
       const aliasStr = alias ?? action;
-      if (aliasStr) {
-        return [`$${character.nameVar} = ${toRenpyString(aliasStr)}`, say].join(
-          "\n",
+
+      if (character) {
+        code.push(
+          [character.charVar, ...attributes, toRenpyString(textSection)].join(
+            " ",
+          ),
         );
+
+        if (aliasStr) {
+          code.push(`$${character.nameVar} = ${toRenpyString(aliasStr)}`);
+        }
+      } else if (aliasStr) {
+        code.push(`${toRenpyString(aliasStr)} ${toRenpyString(text)}`);
+      } else {
+        code.push(toRenpyString(text));
       }
 
-      return say;
+      return code.join("\n");
     },
   };
 };

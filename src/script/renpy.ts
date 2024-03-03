@@ -1,10 +1,6 @@
-export const INDENT = " ".repeat(4);
+import { Character } from "./types";
 
-type Character = {
-  tag: string;
-  charVar: string;
-  nameVar: string;
-};
+export const INDENT = " ".repeat(4);
 
 export const toLabelVar = (text: string) => toVarName(text, "label");
 
@@ -24,5 +20,5 @@ export function toCharacter(speaker: string): Character {
   const charVar = toVarName("chr", tag);
   const nameVar = toVarName("name", charVar);
 
-  return { tag, charVar, nameVar };
+  return { tag, charVar, nameVar, id: charVar };
 }

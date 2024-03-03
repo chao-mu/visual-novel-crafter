@@ -1,18 +1,24 @@
 import type { ParsedScript } from "./parseScript";
 import { INDENT } from "./renpy";
 
+import { Character } from "./types";
+
 import { type ToCodeArgs, isSayStatement, isTimelineStart } from "./statements";
 
+const generateDefineChar = (c: Character) =>
+  `define ${c.charVar} = Character("${c.nameVar}", image="${c.tag}")`;
+
 export const scriptToCode = (script: ParsedScript): string => {
-  const characters = new Set<string>();
+  const characters = new Map<string, Character>();
   for (const { statement } of script.body) {
-    if (isSayStatement(statement)) {
-      characters.add(statement.tag);
+    if (isSayStatement(statement) && statement.character) {
+      const char = statement.character;
+      characters.set(char.id, char);
     }
   }
 
-  const characterDefs = [...characters]
-    .map((c) => `define ${c} = Character("${c}")`)
+  const characterDefs = [...characters.values()]
+    .map((c) => generateDefineChar(c))
     .join("\n");
 
   const timelineLabels = script.body.flatMap(({ statement }) => {
@@ -25,7 +31,7 @@ export const scriptToCode = (script: ParsedScript): string => {
 
   const toCodeArgs: ToCodeArgs = {
     statements: script.body.map(({ statement }) => statement),
-    characters: [...characters],
+    characters: [...characters.values()],
     timelineLabels,
     firstTimeline: timelineLabels[0],
   };
