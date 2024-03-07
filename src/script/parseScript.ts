@@ -2,7 +2,7 @@ import type { docs_v1 } from "googleapis";
 
 import type { Statement } from "./statements";
 
-import { parsers, type ParserArgs } from "./parsers";
+import { parsers } from "./parsers";
 
 import { ParseError } from "./types";
 
@@ -25,9 +25,27 @@ export type ParsedScript = {
     lineInfo: LineInfo;
   }[];
   metadata: {
-    attributesByTag: Map<string, Set<string>>;
+    attributesByTag: Record<string, string[]>;
   };
 };
+
+function tokenize(text: string): string[] {
+  if (text.length === 0) {
+    return [];
+  }
+
+  const tokens = [""];
+  for (const chr of text.split("")) {
+    if (/[\W]/.test(chr)) {
+      tokens.push(chr);
+      tokens.push("");
+    } else {
+      tokens[tokens.length - 1] += chr;
+    }
+  }
+
+  return tokens.filter((tok) => tok !== "");
+}
 
 function getText(p: Paragraph) {
   return p.elements
@@ -65,7 +83,7 @@ export function parseScript(doc: Document): ParsedScript {
     errors: [],
     body: [],
     metadata: {
-      attributesByTag: new Map(),
+      attributesByTag: {},
     },
   };
 
@@ -89,13 +107,15 @@ export function parseScript(doc: Document): ParsedScript {
       continue;
     }
 
-    const args: ParserArgs = {
+    const args = {
       line,
       level: getBulletLevel(p),
       index: statementIndex++,
       isBullet: !!p.bullet,
       headingLevel: getHeadingLevel(p),
     };
+
+    const tokens = tokenize(line);
 
     let found = false;
     for (const parse of parsers) {
@@ -107,7 +127,10 @@ export function parseScript(doc: Document): ParsedScript {
 
       let statement: Statement | null = null;
       try {
-        statement = parse(args);
+        statement = parse({
+          ...args,
+          tokens: [...tokens],
+        });
       } catch (e) {
         if (e instanceof ParseError) {
           script.errors.push({
@@ -147,12 +170,13 @@ export function parseScript(doc: Document): ParsedScript {
   const attributesByTag = script.metadata.attributesByTag;
   for (const { statement } of script.body) {
     if ("tag" in statement && "attributes" in statement) {
-      const attribs = attributesByTag.get(statement.tag) ?? new Set();
-      for (const a of statement.attributes) {
-        attribs.add(a);
-      }
+      const tag = statement.tag;
+      const attribs = new Set<string>([
+        ...statement.attributes,
+        ...(attributesByTag[tag] ?? []),
+      ]);
 
-      attributesByTag.set(statement.tag, attribs);
+      attributesByTag[tag] = [...attribs];
     }
   }
 

@@ -18,13 +18,7 @@ import type {
 
 import { isBranchStart } from "./statements";
 
-import {
-  toRenpyString,
-  toLabelVar,
-  toCharacter,
-  INDENT,
-  toBareword,
-} from "./renpy";
+import { toRenpyString, toLabelVar, toCharacter, INDENT } from "./renpy";
 
 const supportedImageLocations = ["center", "left", "right"];
 
@@ -34,15 +28,102 @@ export type ParserArgs = {
   index: number;
   headingLevel: number | null;
   isBullet: boolean;
+  tokens: string[];
 };
 
 export type ParserFunc<T extends Statement> = (args: ParserArgs) => T | null;
 
-function shiftN<T>(arr: T[], n?: number): T[] {
-  if (!n) {
-    n = arr.length;
+const consume = (
+  { tokens, skipWhitespace }: { tokens: string[]; skipWhitespace: boolean },
+  f: (peek: string) => void,
+) => {
+  let lastLength = tokens.length;
+  while (tokens.length > 0) {
+    if (tokens[0] === undefined) {
+      return;
+    }
+
+    const peek = tokens[0];
+
+    if (skipWhitespace && /^\s*$/.test(peek)) {
+      tokens.shift();
+    } else {
+      f(peek);
+    }
+
+    if (lastLength === tokens.length) {
+      throw new Error(
+        "Logic error. Infinite loop detected while processing tokens: no tokens were consumed in a pass.",
+      );
+    }
+
+    lastLength = tokens.length;
+  }
+};
+
+const consumeBareword = (tokens: string[]) => {
+  const word = tokens.shift();
+
+  if (word === undefined) {
+    throw new Error(
+      "Attempted to consume bareword, but that are no tokens left.",
+    );
   }
 
+  return word;
+};
+
+const consumeTag = consumeBareword;
+const consumeAttribute = consumeBareword;
+
+function consumeWrapped(startTag: string, endTag: string, tokens: string[]) {
+  let action = "";
+
+  if (startTag !== tokens.shift()) {
+    throw new ParseError(`Expected ${startTag}.`);
+  }
+
+  while (tokens.length > 0) {
+    const tok = tokens.shift();
+    if (tok === undefined) {
+      throw new ParseError(`Found ${startTag} but no ${endTag} followed`);
+    }
+
+    if (tok === endTag) {
+      return action;
+    }
+
+    action += tok;
+  }
+
+  throw new Error("Internal logic error");
+}
+
+function consumePrefixedBareword(prefix: string, tokens: string[]): string {
+  if (tokens.shift() !== prefix) {
+    throw new Error(`Internal logic error. Expected ${prefix}`);
+  }
+
+  let value: string | undefined;
+
+  consume({ tokens, skipWhitespace: true }, () => {
+    value = tokens.shift();
+
+    return false;
+  });
+
+  if (value === undefined) {
+    throw new ParseError(`Expected token after ${prefix}`);
+  }
+
+  return value;
+}
+
+function shiftAll<T>(arr: T[]): T[] {
+  return shiftN(arr, arr.length);
+}
+
+function shiftN<T>(arr: T[], n: number): T[] {
   const res: T[] = [];
   for (let i = 0; i < n; i++) {
     const el = arr.shift();
@@ -53,9 +134,6 @@ function shiftN<T>(arr: T[], n?: number): T[] {
 
   return res;
 }
-
-const tokenizeBarewords = (text: string): string[] =>
-  text.split(" ").map(toBareword);
 
 const parseRepeatBranchStatement: ParserFunc<RepeatBranchStatement> = ({
   line,
@@ -81,12 +159,12 @@ const parseRepeatBranchStatement: ParserFunc<RepeatBranchStatement> = ({
   };
 };
 
-const parseComment: ParserFunc<Comment> = ({ line }) => {
-  if (!line.startsWith("[")) {
+const parseComment: ParserFunc<Comment> = ({ tokens }) => {
+  if (tokens[0] !== "[") {
     return null;
   }
 
-  const text = line;
+  const text = tokens.join();
 
   return {
     text,
@@ -95,12 +173,16 @@ const parseComment: ParserFunc<Comment> = ({ line }) => {
   };
 };
 
-const parseBranchItem: ParserFunc<BranchItem> = ({ line, level, isBullet }) => {
+const parseBranchItem: ParserFunc<BranchItem> = ({
+  tokens,
+  level,
+  isBullet,
+}) => {
   if (!isBullet || level % 2 === 0) {
     return null;
   }
 
-  const option = line;
+  const option = tokens.join().trim();
 
   return {
     option,
@@ -111,14 +193,14 @@ const parseBranchItem: ParserFunc<BranchItem> = ({ line, level, isBullet }) => {
 };
 
 const parseTimelineStart: ParserFunc<TimelineStart> = ({
-  line,
+  tokens,
   headingLevel,
 }) => {
   if (headingLevel !== 2) {
     return null;
   }
 
-  const title = line;
+  const title = tokens.join().trim();
   const label = toLabelVar(title);
 
   return {
@@ -131,14 +213,14 @@ const parseTimelineStart: ParserFunc<TimelineStart> = ({
 };
 
 const parseTimelinesStart: ParserFunc<TimelinesStart> = ({
-  line,
+  tokens,
   headingLevel,
 }) => {
   if (headingLevel !== 1) {
     return null;
   }
 
-  if (line !== "Timelines") {
+  if (tokens.join().toLowerCase().trim() !== "timelines") {
     return null;
   }
 
@@ -153,12 +235,22 @@ const parseTimelinesStart: ParserFunc<TimelinesStart> = ({
   };
 };
 
-const parseSceneStatement: ParserFunc<SceneStatement> = ({ line }) => {
-  if (!/^scene[\s$]/i.test(line)) {
+const parseSceneStatement: ParserFunc<SceneStatement> = ({ tokens }) => {
+  const command = tokens.shift()?.toLowerCase();
+  if (command != "scene") {
     return null;
   }
 
-  const [, tag, ...attributes] = tokenizeBarewords(line);
+  let tag = "";
+  const attributes: string[] = [];
+  consume({ tokens, skipWhitespace: true }, () => {
+    if (!tag) {
+      tag = consumeTag(tokens);
+    } else {
+      attributes.push(consumeAttribute(tokens));
+    }
+  });
+
   if (!tag) {
     throw new ParseError("Scene statement missing tag");
   }
@@ -270,47 +362,31 @@ const parseBranchStart: ParserFunc<BranchStart> = ({ line, index }) => {
   };
 };
 
-const parseShowStatement: ParserFunc<ShowStatement> = ({ line }) => {
-  const tokens = line.toLowerCase().split(" ");
-
-  const command = tokens.shift();
+const parseShowStatement: ParserFunc<ShowStatement> = ({ tokens }) => {
+  const command = tokens.shift()?.toLowerCase();
   if (command != "show") {
     return null;
   }
 
-  const tag = tokens.shift();
-  if (!tag) {
-    throw new ParseError("Show statement missing tag");
-  }
-
-  const attribsEnd = tokens.findIndex((tok) => ["with", "at"].includes(tok));
-  const attributes =
-    attribsEnd == -1 ? shiftN(tokens) : shiftN(tokens, attribsEnd);
-
+  let tag = "";
+  const attributes: string[] = [];
   let atArg: string | undefined;
   let withArg: string | undefined;
-  while (tokens.length > 0) {
-    const [keyword, arg] = shiftN(tokens, 2);
 
-    if (!arg) {
-      throw new ParseError(
-        `Show statement has the "${keyword}" with no argument`,
-      );
-    }
-
-    if (keyword == "with") {
-      withArg = arg;
-    } else if (keyword == "at") {
-      atArg = arg;
+  consume({ tokens, skipWhitespace: true }, (peek) => {
+    if (peek == "with") {
+      withArg = consumePrefixedBareword("with", tokens);
+    } else if (peek == "at") {
+      atArg = consumePrefixedBareword("at", tokens);
+    } else if (!tag) {
+      tag = consumeTag(tokens);
     } else {
-      throw new ParseError(`Show statement has unknown keyword ${keyword}`);
+      attributes.push(consumeAttribute(tokens));
     }
-  }
+  });
 
-  if (atArg && !supportedImageLocations.includes(atArg)) {
-    throw new ParseError(
-      `Show statement has invalid location specified: ${atArg}. Must be one of ${supportedImageLocations.join(", ")}`,
-    );
+  if (atArg !== undefined && !supportedImageLocations.includes(atArg)) {
+    throw new ParseError(`Unsupported image location specified: ${atArg}`);
   }
 
   return {
@@ -319,6 +395,7 @@ const parseShowStatement: ParserFunc<ShowStatement> = ({ line }) => {
     kind: "show",
     toCode: () => {
       let code = `show ${tag} ${attributes.join(" ")}`;
+
       if (atArg) {
         code += ` at ${atArg}`;
       }
@@ -332,26 +409,50 @@ const parseShowStatement: ParserFunc<ShowStatement> = ({ line }) => {
   };
 };
 
-const parseSayStatement: ParserFunc<SayStatement> = ({ line }) => {
-  if (!/.+:.+/.test(line)) {
+const parseSayStatement: ParserFunc<SayStatement> = ({ tokens }) => {
+  const speechIndex = tokens.indexOf(":");
+  if (speechIndex === -1) {
     return null;
   }
 
-  const [speakerSection, textSection] = line.split(":", 2).map((s) => s.trim());
-  if (!speakerSection) {
-    throw new ParseError("No speaker portion found");
-  }
+  const consumeSpeech = (tokens: string[]) => {
+    if (":" !== tokens.shift()) {
+      throw new ParseError(
+        "Expected : while consuming action. Internal error.",
+      );
+    }
 
-  if (!textSection) {
-    throw new ParseError("No text portion found");
-  }
+    return shiftAll(tokens).join("").trim();
+  };
 
-  const text = textSection.trim();
-  const alias = speakerSection.match(/\((.+?)\)/)?.[1];
-  const action = speakerSection.match(/\[(.+?)\]/)?.[1];
-  const [tag, ...attributes] = tokenizeBarewords(
-    speakerSection.replaceAll(/(\(.+?\)|\[.+?\])/g, ""),
-  );
+  const consumeAlias = (tokens: string[]) => consumeWrapped("(", ")", tokens);
+  const consumeAction = (tokens: string[]) => consumeWrapped("{", "}", tokens);
+
+  let tag: string | undefined;
+  const attributes: string[] = [];
+  let action: string | undefined;
+  let alias: string | undefined;
+  let speech = "";
+
+  consume({ tokens, skipWhitespace: true }, (peek) => {
+    if (peek === " ") {
+      tokens.shift();
+    } else if (peek === "(") {
+      alias = consumeAlias(tokens);
+    } else if (peek === "{") {
+      action = consumeAction(tokens);
+    } else if (peek === ":") {
+      speech = consumeSpeech(tokens);
+    } else if (!tag) {
+      tag = consumeTag(tokens);
+    } else {
+      attributes.push(consumeAttribute(tokens));
+    }
+  });
+
+  if (!speech) {
+    throw new ParseError("Say statement encountered without speech portion");
+  }
 
   let character: undefined | Character;
   if (tag) {
@@ -362,7 +463,7 @@ const parseSayStatement: ParserFunc<SayStatement> = ({ line }) => {
     character,
     attributes,
     alias,
-    text,
+    text: speech,
     action,
     tag,
     kind: "say",
@@ -372,32 +473,22 @@ const parseSayStatement: ParserFunc<SayStatement> = ({ line }) => {
 
       if (character) {
         code.push(
-          [character.charVar, ...attributes, toRenpyString(textSection)].join(
-            " ",
-          ),
+          [character.charVar, ...attributes, toRenpyString(speech)].join(" "),
         );
 
         if (aliasStr) {
           code.push(`$${character.nameVar} = ${toRenpyString(aliasStr)}`);
         }
       } else if (aliasStr) {
-        code.push(`${toRenpyString(aliasStr)} ${toRenpyString(text)}`);
+        code.push(`${toRenpyString(aliasStr)} ${toRenpyString(speech)}`);
       } else {
-        code.push(toRenpyString(text));
+        code.push(toRenpyString(speech));
       }
 
       return code.join("\n");
     },
   };
 };
-
-/*
-export function isNumericAssignment(
-  stmt: Statement,
-): stmt is ReturnType<typeof parseNumericAssignment> {
-  return stmt.kind === "numeric-assignment";
-}
-*/
 
 export const parsers: ParserFunc<Statement>[] = [
   parseComment,

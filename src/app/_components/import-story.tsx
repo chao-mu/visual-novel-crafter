@@ -16,10 +16,48 @@ import type { ParsedScript } from "@/script";
 
 type Form = {
   url: string;
+  debug: boolean;
 };
 
+function Debug(obj) {
+  return <pre className={utilStyles.code}>{JSON.stringify(obj, null, 2)}</pre>;
+}
+
+function ScriptResult({
+  script,
+  debug,
+}: {
+  script: ParsedScript | null;
+  debug?: boolean;
+}) {
+  if (script === null) {
+    return <></>;
+  }
+
+  if (script.errors.length > 0) {
+    return <ScriptErrors errors={script.errors} />;
+  }
+
+  return debug ? (
+    <Debug script={script} />
+  ) : (
+    <ScriptMeta metadata={script.metadata} />
+  );
+}
+
+function ScriptErrors({ errors }: { errors: ParsedScript["errors"] }) {
+  return <Debug errors={errors} />;
+}
+
+function ScriptMeta({ metadata }: { metadata: ParsedScript["metadata"] }) {
+  return <Debug metadata={metadata} />;
+}
+
 export function ImportStory() {
-  const { register, handleSubmit } = useForm<Form>();
+  const { register, handleSubmit, getValues } = useForm<Form>({
+    defaultValues: { debug: true },
+  });
+
   const [parsedScript, setParsedScript] = useState<ParsedScript | null>(null);
 
   const loadScript = api.script.loadScript.useMutation({
@@ -52,6 +90,9 @@ export function ImportStory() {
     element.remove();
   };
 
+  const debug = getValues("debug");
+  console.log(debug);
+
   return (
     <form onSubmit={onSubmit} className={formStyles["inline-form"]}>
       <input
@@ -60,26 +101,13 @@ export function ImportStory() {
         placeholder="Google Docs URL"
         {...register("url")}
       />
+      <label htmlFor="debug">Debug</label>
+      <input id="debug" type="checkbox" {...register("debug")} />
       <SubmitButton isLoading={loadScript.isLoading} />
       <p className={formStyles["submission-error"]}>
         {loadScript.error?.message}
       </p>
-      {parsedScript &&
-        (parsedScript.errors.length > 0 ? (
-          <pre className={utilStyles.code}>
-            {JSON.stringify(parsedScript.errors, null, 2)}
-          </pre>
-        ) : (
-          <ul>
-            {[...parsedScript.metadata.attributesByTag.entries()].map(
-              ([tag, attributes]) => (
-                <li key={tag}>
-                  {tag} - {[...attributes].join(", ")}
-                </li>
-              ),
-            )}
-          </ul>
-        ))}
+      <ScriptResult script={parsedScript} debug={debug} />
     </form>
   );
 }
