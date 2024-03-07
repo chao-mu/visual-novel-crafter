@@ -1,10 +1,7 @@
 "use client";
 
 // React
-import { useState, ReactNode } from "react";
-
-// NextJs
-import { useRouter } from "next/navigation";
+import { useState, type ReactNode } from "react";
 
 // Ours
 import { api } from "@/trpc/react";

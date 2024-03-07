@@ -1,7 +1,7 @@
 import type { ParsedScript } from "./parseScript";
 import { INDENT } from "./renpy";
 
-import { Character } from "./types";
+import { type Character } from "./types";
 
 import {
   type ToCodeArgs,

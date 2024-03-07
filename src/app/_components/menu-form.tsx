@@ -4,8 +4,8 @@
 import {
   useForm,
   useFieldArray,
-  UseFormRegister,
-  Control,
+  type UseFormRegister,
+  type Control,
 } from "react-hook-form";
 
 // NextJs

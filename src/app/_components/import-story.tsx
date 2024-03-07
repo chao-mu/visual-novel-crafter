@@ -19,8 +19,8 @@ type Form = {
   debug: boolean;
 };
 
-function Debug(obj) {
-  return <pre className={utilStyles.code}>{JSON.stringify(obj, null, 2)}</pre>;
+function Debug(args: Partial<ParsedScript>) {
+  return <pre className={utilStyles.code}>{JSON.stringify(args)}</pre>;
 }
 
 function ScriptResult({
@@ -39,7 +39,7 @@ function ScriptResult({
   }
 
   return debug ? (
-    <Debug script={script} />
+    <Debug {...script} />
   ) : (
     <ScriptMeta metadata={script.metadata} />
   );
@@ -91,7 +91,6 @@ export function ImportStory() {
   };
 
   const debug = getValues("debug");
-  console.log(debug);
 
   return (
     <form onSubmit={onSubmit} className={formStyles["inline-form"]}>

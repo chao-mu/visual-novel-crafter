@@ -1,4 +1,4 @@
-import { ParseError, Character } from "./types";
+import { ParseError, type Character } from "./types";
 
 import type {
   Statement,
