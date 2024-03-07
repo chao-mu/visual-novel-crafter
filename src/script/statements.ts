@@ -17,8 +17,8 @@ export type Comment = {
   text: string;
 } & CodeGenerator;
 
-export type MenuItem = {
-  kind: "menu-item";
+export type BranchItem = {
+  kind: "branch-item";
   option: string;
 } & CodeGenerator;
 
@@ -56,8 +56,8 @@ export type JumpStatement = {
   destination: string;
 } & CodeGenerator;
 
-export type MenuStart = {
-  kind: "menu-start";
+export type BranchStart = {
+  kind: "branch-start";
   index: number;
   label: string;
 } & CodeGenerator;
@@ -77,22 +77,22 @@ export type SayStatement = {
   attributes: string[];
 } & CodeGenerator;
 
-export type RepeatMenuStatement = {
-  kind: "repeat-menu";
+export type RepeatBranchStatement = {
+  kind: "repeat-branch";
 } & CodeGenerator;
 
 export type Statement =
   | Comment
-  | MenuItem
+  | BranchItem
   | TimelineStart
   | TimelinesStart
   | SceneStatement
   | NumericAssignment
   | JumpStatement
-  | MenuStart
+  | BranchStart
   | ShowStatement
   | SayStatement
-  | RepeatMenuStatement
+  | RepeatBranchStatement
   | InputStatement;
 
 export const isNumericAssignment = (
@@ -107,5 +107,5 @@ export const isTimelineStart = (
   statement: Statement,
 ): statement is TimelineStart => statement.kind === "timeline-label";
 
-export const isMenuStart = (statement: Statement): statement is MenuStart =>
-  statement.kind === "menu-start";
+export const isBranchStart = (statement: Statement): statement is BranchStart =>
+  statement.kind === "branch-start";

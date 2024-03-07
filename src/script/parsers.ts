@@ -2,21 +2,21 @@ import { ParseError, Character } from "./types";
 
 import type {
   Statement,
-  RepeatMenuStatement,
+  RepeatBranchStatement,
   Comment,
-  MenuItem,
+  BranchItem,
   TimelineStart,
   TimelinesStart,
   SceneStatement,
   InputStatement,
   NumericAssignment,
   JumpStatement,
-  MenuStart,
+  BranchStart,
   ShowStatement,
   SayStatement,
 } from "./statements";
 
-import { isMenuStart } from "./statements";
+import { isBranchStart } from "./statements";
 
 import {
   toRenpyString,
@@ -25,6 +25,8 @@ import {
   INDENT,
   toBareword,
 } from "./renpy";
+
+const supportedImageLocations = ["center", "left", "right"];
 
 export type ParserArgs = {
   line: string;
@@ -36,29 +38,45 @@ export type ParserArgs = {
 
 export type ParserFunc<T extends Statement> = (args: ParserArgs) => T | null;
 
+function shiftN<T>(arr: T[], n?: number): T[] {
+  if (!n) {
+    n = arr.length;
+  }
+
+  const res: T[] = [];
+  for (let i = 0; i < n; i++) {
+    const el = arr.shift();
+    if (el !== undefined) {
+      res.push(el);
+    }
+  }
+
+  return res;
+}
+
 const tokenizeBarewords = (text: string): string[] =>
   text.split(" ").map(toBareword);
 
-const parseRepeatMenuStatement: ParserFunc<RepeatMenuStatement> = ({
+const parseRepeatBranchStatement: ParserFunc<RepeatBranchStatement> = ({
   line,
   index,
 }) => {
-  if (line.toLowerCase() != "repeat menu") {
+  if (line.toLowerCase() != "repeat branch") {
     return null;
   }
 
   return {
-    kind: "repeat-menu",
+    kind: "repeat-branch",
     toCode: ({ statements }) => {
-      const lastMenu = statements
+      const lastBranch = statements
         .reverse()
-        .find((s) => isMenuStart(s) && s.index < index);
+        .find((s) => isBranchStart(s) && s.index < index);
 
-      if (!lastMenu || !isMenuStart(lastMenu)) {
-        throw new ParseError("No previous menu found");
+      if (!lastBranch || !isBranchStart(lastBranch)) {
+        throw new ParseError("No previous branch found");
       }
 
-      return `jump ${lastMenu.label}`;
+      return `jump ${lastBranch.label}`;
     },
   };
 };
@@ -77,7 +95,7 @@ const parseComment: ParserFunc<Comment> = ({ line }) => {
   };
 };
 
-const parseMenuItem: ParserFunc<MenuItem> = ({ line, level, isBullet }) => {
+const parseBranchItem: ParserFunc<BranchItem> = ({ line, level, isBullet }) => {
   if (!isBullet || level % 2 === 0) {
     return null;
   }
@@ -86,7 +104,7 @@ const parseMenuItem: ParserFunc<MenuItem> = ({ line, level, isBullet }) => {
 
   return {
     option,
-    kind: "menu-item",
+    kind: "branch-item",
 
     toCode: () => toRenpyString(option) + ":",
   };
@@ -233,8 +251,8 @@ const parseJumpStatement: ParserFunc<JumpStatement> = ({ line }) => {
   };
 };
 
-const parseMenuStart: ParserFunc<MenuStart> = ({ line, index }) => {
-  if (!/^Menu\s*:/i.test(line)) {
+const parseBranchStart: ParserFunc<BranchStart> = ({ line, index }) => {
+  if (!/^Branch\s*:/i.test(line)) {
     return null;
   }
 
@@ -244,7 +262,7 @@ const parseMenuStart: ParserFunc<MenuStart> = ({ line, index }) => {
   return {
     label,
     index,
-    kind: "menu-start",
+    kind: "branch-start",
     toCode: () =>
       [`$${optionsVar} = []`, `menu ${label}:`, `${INDENT}set options`].join(
         "\n",
@@ -253,21 +271,64 @@ const parseMenuStart: ParserFunc<MenuStart> = ({ line, index }) => {
 };
 
 const parseShowStatement: ParserFunc<ShowStatement> = ({ line }) => {
-  if (!/^show[\s$]/i.test(line)) {
+  const tokens = line.toLowerCase().split(" ");
+
+  const command = tokens.shift();
+  if (command != "show") {
     return null;
   }
 
-  const [, tag, ...attributes] = tokenizeBarewords(line);
-
+  const tag = tokens.shift();
   if (!tag) {
     throw new ParseError("Show statement missing tag");
+  }
+
+  const attribsEnd = tokens.findIndex((tok) => ["with", "at"].includes(tok));
+  const attributes =
+    attribsEnd == -1 ? shiftN(tokens) : shiftN(tokens, attribsEnd);
+
+  let atArg: string | undefined;
+  let withArg: string | undefined;
+  while (tokens.length > 0) {
+    const [keyword, arg] = shiftN(tokens, 2);
+
+    if (!arg) {
+      throw new ParseError(
+        `Show statement has the "${keyword}" with no argument`,
+      );
+    }
+
+    if (keyword == "with") {
+      withArg = arg;
+    } else if (keyword == "at") {
+      atArg = arg;
+    } else {
+      throw new ParseError(`Show statement has unknown keyword ${keyword}`);
+    }
+  }
+
+  if (atArg && !supportedImageLocations.includes(atArg)) {
+    throw new ParseError(
+      `Show statement has invalid location specified: ${atArg}. Must be one of ${supportedImageLocations.join(", ")}`,
+    );
   }
 
   return {
     tag,
     attributes,
     kind: "show",
-    toCode: () => `show ${tag} ${attributes.join(" ")}`,
+    toCode: () => {
+      let code = `show ${tag} ${attributes.join(" ")}`;
+      if (atArg) {
+        code += ` at ${atArg}`;
+      }
+
+      if (withArg) {
+        code += ` with ${withArg}`;
+      }
+
+      return code;
+    },
   };
 };
 
@@ -340,15 +401,15 @@ export function isNumericAssignment(
 
 export const parsers: ParserFunc<Statement>[] = [
   parseComment,
-  parseMenuItem,
+  parseBranchItem,
   parseTimelineStart,
   parseTimelinesStart,
   parseSceneStatement,
   parseInputStatement,
   parseNumericAssignment,
   parseJumpStatement,
-  parseRepeatMenuStatement,
-  parseMenuStart,
+  parseRepeatBranchStatement,
+  parseBranchStart,
   parseShowStatement,
   parseSayStatement,
 ];
