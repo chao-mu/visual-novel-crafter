@@ -18,7 +18,14 @@ import type {
 
 import { isBranchStart } from "./statements";
 
-import { toRenpyString, toLabelVar, toCharacter, INDENT } from "./renpy";
+import {
+  toRenpyString,
+  toLabelVar,
+  toCharacter,
+  toTag,
+  toAttribute,
+  INDENT,
+} from "./renpy";
 
 const supportedImageLocations = ["center", "left", "right"];
 
@@ -73,8 +80,9 @@ const consumeBareword = (tokens: string[]) => {
   return word;
 };
 
-const consumeTag = consumeBareword;
-const consumeAttribute = consumeBareword;
+const consumeTag = (tokens: string[]) => toTag(consumeBareword(tokens));
+const consumeAttribute = (tokens: string[]) =>
+  toAttribute(consumeBareword(tokens));
 
 function consumeWrapped(startTag: string, endTag: string, tokens: string[]) {
   let action = "";

@@ -15,6 +15,19 @@ const generateDefineChar = (c: Character) =>
 
 const generateDefineNumber = (varName: string) => `define ${varName} = 0`;
 
+const getCombinations = <T>(arr: T[]): T[][] => {
+  const f = <T>(front: T[], tail: T[]): T[][] => {
+    return tail.flatMap((el, idx) => {
+      const newFront = [...front, el];
+      const newTail = tail.slice(idx + 1);
+
+      return [...f(newFront, newTail), newFront];
+    });
+  };
+
+  return f([], arr);
+};
+
 export const scriptToCode = (script: ParsedScript): string => {
   const characters = new Map<string, Character>();
   for (const { statement } of script.body) {

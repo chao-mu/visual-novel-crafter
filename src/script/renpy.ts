@@ -2,6 +2,10 @@ import { type Character } from "./types";
 
 export const INDENT = " ".repeat(4);
 
+export const toAttribute = (text: string) => text.toLowerCase();
+
+export const toTag = (text: string) => text.toLowerCase();
+
 export const toLabelVar = (text: string) => toVarName(text, "label");
 
 export const toRenpyString = (text: string) => JSON.stringify(text);

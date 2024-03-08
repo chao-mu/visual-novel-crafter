@@ -6,6 +6,7 @@ export type ToCodeArgs = {
   firstTimeline?: string;
   statements: Statement[];
 };
+
 export type CodeGenerator = {
   kind: string;
   toCode: (args: ToCodeArgs) => string;

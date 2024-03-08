@@ -20,7 +20,7 @@ type Form = {
 };
 
 function Debug(args: Partial<ParsedScript>) {
-  return <pre className={utilStyles.code}>{JSON.stringify(args)}</pre>;
+  return <pre className={utilStyles.code}>{JSON.stringify(args, null, 2)}</pre>;
 }
 
 function ScriptResult({
@@ -54,7 +54,7 @@ function ScriptMeta({ metadata }: { metadata: ParsedScript["metadata"] }) {
 }
 
 export function ImportStory() {
-  const { register, handleSubmit, getValues } = useForm<Form>({
+  const { register, handleSubmit, watch } = useForm<Form>({
     defaultValues: { debug: true },
   });
 
@@ -90,7 +90,7 @@ export function ImportStory() {
     element.remove();
   };
 
-  const debug = getValues("debug");
+  const debug = watch("debug");
 
   return (
     <form onSubmit={onSubmit} className={formStyles["inline-form"]}>
