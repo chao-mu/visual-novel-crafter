@@ -172,7 +172,7 @@ const parseComment: ParserFunc<Comment> = ({ tokens }) => {
     return null;
   }
 
-  const text = tokens.join();
+  const text = concat({ tokens, trim: true });
 
   return {
     text,
@@ -190,7 +190,7 @@ const parseBranchItem: ParserFunc<BranchItem> = ({
     return null;
   }
 
-  const option = tokens.join().trim();
+  const option = concat({ tokens, trim: true });
 
   return {
     option,
@@ -220,6 +220,28 @@ const parseTimelineStart: ParserFunc<TimelineStart> = ({
   };
 };
 
+const concat = ({
+  tokens,
+  lowerCase,
+  trim,
+}: {
+  tokens: string[];
+  lowerCase?: boolean;
+  trim?: boolean;
+}) => {
+  let text = tokens.join("");
+
+  if (lowerCase) {
+    text = text.toLowerCase();
+  }
+
+  if (trim) {
+    text = text.trim();
+  }
+
+  return text;
+};
+
 const parseTimelinesStart: ParserFunc<TimelinesStart> = ({
   tokens,
   headingLevel,
@@ -228,7 +250,7 @@ const parseTimelinesStart: ParserFunc<TimelinesStart> = ({
     return null;
   }
 
-  if (tokens.join().toLowerCase().trim() !== "timelines") {
+  if (concat({ tokens, lowerCase: true, trim: true }) !== "timelines") {
     return null;
   }
 
@@ -339,8 +361,8 @@ const parseJumpStatement: ParserFunc<JumpStatement> = ({ line }) => {
   }
 
   const [, ...tokens] = line.split(" ");
-  const destination = tokens.join(" ");
-  if (!tokens) {
+  const destination = concat({ tokens, trim: true });
+  if (!destination) {
     throw new ParseError("No jump destination specified");
   }
 
