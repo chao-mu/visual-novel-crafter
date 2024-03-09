@@ -1,6 +1,6 @@
 import type { docs_v1 } from "googleapis";
 
-import type { Statement } from "./statements";
+import { isTimelineStart, type Statement } from "./statements";
 
 import { parsers } from "./parsers";
 
@@ -26,6 +26,7 @@ export type ParsedScript = {
   }[];
   metadata: {
     attributesByTag: Record<string, string[]>;
+    timelines: Record<string, string>;
   };
 };
 
@@ -167,7 +168,9 @@ export function parseScript(doc: Document): ParsedScript {
     }
   }
 
-  const attributesByTag = script.metadata.attributesByTag;
+  const attributesByTag: Record<string, string[]> = {};
+  const timelines: Record<string, string> = {};
+
   for (const { statement } of script.body) {
     if ("tag" in statement && "attributes" in statement) {
       const tag = statement.tag;
@@ -178,7 +181,16 @@ export function parseScript(doc: Document): ParsedScript {
 
       attributesByTag[tag] = [...attribs];
     }
+
+    if (isTimelineStart(statement)) {
+      timelines[statement.label] = statement.title;
+    }
   }
+
+  script.metadata = {
+    timelines: timelines,
+    attributesByTag: attributesByTag,
+  };
 
   return script;
 }
