@@ -11,7 +11,7 @@ import { api } from "@/trpc/react";
 import formStyles from "@/styles/form.module.css";
 import utilStyles from "@/styles/util.module.css";
 import { SubmitButton } from "@/app/_components/submit-button";
-import { parseScript, scriptToCode } from "@/script";
+import { parseScript, generateCode } from "@/script";
 import type { ParsedScript } from "@/script";
 
 type Form = {
@@ -68,8 +68,8 @@ export function ImportStory() {
         return;
       }
 
-      const output = scriptToCode(script);
-      download(output);
+      const code = generateCode(script);
+      download(code);
     },
   });
 

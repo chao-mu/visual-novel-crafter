@@ -85,6 +85,7 @@ export function parseScript(doc: Document): ParsedScript {
     body: [],
     metadata: {
       attributesByTag: {},
+      timelines: {},
     },
   };
 
@@ -168,8 +169,8 @@ export function parseScript(doc: Document): ParsedScript {
     }
   }
 
-  const attributesByTag: Record<string, string[]> = {};
-  const timelines: Record<string, string> = {};
+  const attributesByTag = script.metadata.attributesByTag;
+  const timelines = script.metadata.timelines;
 
   for (const { statement } of script.body) {
     if ("tag" in statement && "attributes" in statement) {
@@ -186,11 +187,6 @@ export function parseScript(doc: Document): ParsedScript {
       timelines[statement.label] = statement.title;
     }
   }
-
-  script.metadata = {
-    timelines: timelines,
-    attributesByTag: attributesByTag,
-  };
 
   return script;
 }

@@ -28,7 +28,7 @@ const getCombinations = <T>(arr: T[]): T[][] => {
   return f([], arr);
 };
 
-export const scriptToCode = (script: ParsedScript): string => {
+export const generateCode = (script: ParsedScript): string => {
   const characters = new Map<string, Character>();
   for (const { statement } of script.body) {
     if (isSayStatement(statement) && statement.character) {
