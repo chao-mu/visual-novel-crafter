@@ -208,7 +208,7 @@ const parseTimelineStart: ParserFunc<TimelineStart> = ({
     return null;
   }
 
-  const title = tokens.join().trim();
+  const title = tokens.join("").trim();
   const label = toLabelVar(title);
 
   return {
