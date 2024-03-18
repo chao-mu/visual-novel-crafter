@@ -5,7 +5,7 @@ import {
   type DefaultSession,
   type NextAuthOptions,
 } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+import GoogleProvider, { GoogleProfile } from "next-auth/providers/google";
 
 // Google API
 import { google } from "googleapis";
@@ -98,8 +98,10 @@ export const authOptions: NextAuthOptions = {
       },
       profile: async (profile, tokens) => {
         profile = {
-          ...profile,
           id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
         };
 
         if (!tokens.expires_at || !tokens.refresh_token) {
