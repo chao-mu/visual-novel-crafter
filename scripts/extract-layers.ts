@@ -5,29 +5,8 @@ import { PNG } from "pngjs";
 
 import process from "process";
 
-// Recursively traverse layers and layer groups
-
-const nameOverrides: Record<string, string | null> = {
-  Anger: "Expression - Anger",
-  Fear: "Expression - Fear",
-  Frown: "Expression - Frown",
-  Grimace: "Expression - Grimace",
-  Grin: "Expression - Grin",
-  Neutral: "Expression - Neutral",
-  Shock: "Expression - Shock",
-  Surprise: "Expression - Surprise",
-  Smile: "Expression - Smile",
-  Layer10: "Gesture - 1",
-  Layer1: null,
-  Layer2: "Gesture - Pointing",
-  Layer3: "Gesture - Arms Crossed",
-  Layer4: null,
-  Layer5: null,
-  Layer6: null,
-  Layer7: null,
-  Layer8: "Gesture - Hand behind head",
-  Layer9: "Gesture - Surprised",
-};
+// Ours
+import { isValidName } from "@/images";
 
 async function render(layer: Layer, outPath: string) {
   console.log(`Rendering ${layer.name} to ${outPath}`);
@@ -45,21 +24,15 @@ async function render(layer: Layer, outPath: string) {
 function traverse(parent: Node, outdir: string) {
   function traverseNode(node: Node) {
     if (node.type === "Layer") {
-      const alias = nameOverrides[node.name];
-      if (alias === undefined) {
-        console.log("Skipping", node.name, "name not found in overrides");
-        return;
+      const name = node.name;
+      if (isValidName(node.name)) {
+        const outPath = path.join(outdir, `${name}.png`);
+        render(node, outPath).catch((err) =>
+          console.error("Failed to render layer.", node.name, err),
+        );
+      } else {
+        console.log("Invalid name, skipping.", name);
       }
-
-      if (alias === null) {
-        console.log("Skipping", node.name, "name marked to be skipped");
-        return;
-      }
-
-      const outPath = path.join(outdir, `${alias}.png`);
-      render(node, outPath).catch((err) =>
-        console.error("Failed to render layer", node.name, err),
-      );
     } else if (node.type === "Group") {
       // Do something with Group
     } else if (node.type === "Psd") {
@@ -88,6 +61,7 @@ async function main() {
 
   console.log("reading..");
   const psdData = fs.readFileSync(path);
+
   console.log("parsing...");
   const psdFile = Psd.parse(psdData.buffer);
 

@@ -3,28 +3,8 @@ import pathlib from "path";
 import sharp from "sharp";
 import fs from "fs";
 
-type LayerInfo = {
-  category: string;
-  attribute: string;
-  name: string;
-  path: string;
-};
-
-function parsePath(path: string) {
-  const name = pathlib.basename(path, pathlib.extname(path));
-  if (!name.includes("-")) {
-    throw new Error(
-      `Invalid name. Expected - to split group and attribute. Got ${name}`,
-    );
-  }
-
-  const [, category, attribute] = /^(.*?)\s+-\s+(.*)$/.exec(name) ?? [];
-  if (!category || !attribute) {
-    throw new Error(`Unable to parse name. Got ${name}`);
-  }
-
-  return { category, attribute, path, name };
-}
+// Ours
+import { parsePath, type LayerInfo } from "@/images";
 
 async function main() {
   const [, , outDir, ...paths] = process.argv;
